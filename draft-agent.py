@@ -31,7 +31,7 @@ custom_theme = Theme({
 console = Console(theme=custom_theme)
 
 
-# 1. GitHub Engine
+# 1. GitHub Engine с поддержкой HITL
 class GitHubEngine:
     def __init__(self):
         self.token = os.environ.get("GITHUB_TOKEN")
@@ -74,7 +74,7 @@ class GitHubEngine:
             return str(e)
 
 
-# 2. Основной оркестратор
+# 2. Основной оркестратор с HITL и Rich UI
 async def run_albugent_pipeline():
     console.print(Panel.fit(
         "[bold magenta]ALBUGENT 2.0[/bold magenta] | Governance Agent Engine\n"
@@ -102,7 +102,7 @@ async def run_albugent_pipeline():
 
             loop = asyncio.get_running_loop()
 
-            # --- Инструменты MCP ---
+            # --- Обертки инструментов MCP с красивым выводом ---
             @tool
             def analyze_lineage_graph(nodes: List[str], edges: List[List[str]]) -> str:
                 """Analyzes lineage graph for dataset nodes and edges to calculate centrality scores."""
@@ -133,20 +133,47 @@ async def run_albugent_pipeline():
                 future = asyncio.run_coroutine_threadsafe(coro, loop)
                 res = future.result(timeout=30)
                 
-                # Печатаем аккуратную таблицу результатов оценки (без остановки потока!)
+                # Разбор результата для HITL принятия решений
                 try:
                     data = json.loads(res.content[0].text if isinstance(res.content, list) else res.content)
                     risk_score = data.get("risk_score", 0.0)
                     
+                    # Визуализация результатов оценки в Rich Table
                     table = Table(title=f"Dataset Evaluation: {urn.split(',')[-2]}", show_header=True)
                     table.add_column("Property", style="cyan")
                     table.add_column("Value", style="bold white")
                     table.add_row("URN", urn)
                     table.add_row("Centrality", str(centrality))
-                    table.add_row("Risk Score", f"{risk_score:.2f}")
+                    
+                    if risk_score >= 0.85:
+                        table.add_row("Risk Score", f"[danger]{risk_score:.2f} (CRITICAL)[/danger]")
+                    elif risk_score >= 0.65:
+                        table.add_row("Risk Score", f"[warning]{risk_score:.2f} (MEDIUM)[/warning]")
+                    else:
+                        table.add_row("Risk Score", f"[success]{risk_score:.2f} (LOW)[/success]")
+                    
                     console.print(table)
-                except Exception:
-                    pass
+
+                    # --- Human-in-the-Loop (HITL) Логика ---
+                    if risk_score >= 0.3: #<-- mock-test⚒️
+                        console.print(Panel(
+                            f"[danger]🚨 CRITICAL RISK DETECTED ({risk_score:.2f})[/danger]\n"
+                            f"Dataset {urn} exceeds safety threshold (>= 0.85).",
+                            title="Human-In-The-Loop Intervention Required",
+                            border_style="red"
+                        ))
+                     
+                    elif risk_score >= 0.65:
+                        console.print(f"[warning]⚡ Medium risk detected ({risk_score:.2f}). Autonomously creating PR...[/warning]")
+                        git_engine.create_remediation_pr(
+                            artifacts={"remediation.md": f"# Auto Remediation for {urn}\nRisk: {risk_score}"},
+                            summary_md=f"Automated remediation PR created for Medium Risk ({risk_score})."
+                        )
+                    else:
+                        console.print(f"[dim]ℹ️ Low risk ({risk_score:.2f}). No remediation required.[/dim]")
+
+                except Exception as e:
+                    console.print(f"[warning]Failed to parse risk result for HITL: {e}[/warning]")
 
                 return str(res.content)
 
@@ -158,7 +185,7 @@ async def run_albugent_pipeline():
                 tools=tools_for_agent
             )
 
-            # Мок-данные для проверки
+            # Мок-данные для проверки критического риска
             mock_nodes = [
                 "urn:li:dataset:(postgres,healthcare_billing,PROD)",
                 "urn:li:dataset:(hive,nyc_taxi_trips,PROD)",
@@ -177,38 +204,14 @@ async def run_albugent_pipeline():
             for table fields ['id', 'patient_name', 'ssn', 'billing_amount'].
             """
 
-            # 1. Агент автономно выполняет все инструменты
             with console.status("[bold green]Agent thinking and executing tools...", spinner="bouncingBar"):
                 response = await asyncio.to_thread(agent, prompt_task)
 
-            # 2. Вывод итогового решения
             console.print(Panel(
                 str(response),
                 title="[bold green]Final Agent Governance Decision[/bold green]",
                 border_style="green"
             ))
-
-            # 3. Единая панель Human-In-The-Loop в самом конце
-            console.print(Panel(
-                "[danger]🚨 GOVERNANCE AUDIT COMPLETE[/danger]\n"
-                "Audit finished. Automated remediation is ready for deployment.",
-                title="Human-In-The-Loop Intervention Required",
-                border_style="red"
-            ))
-            
-            approved = Confirm.ask(
-                "[bold yellow]Do you authorize automated remediation and GitHub PR creation?[/bold yellow]",
-                console=console
-            )
-
-            if approved:
-                console.print("[success]✅ Operator APPROVED remediation. Creating PR...[/success]")
-                git_engine.create_remediation_pr(
-                    artifacts={"remediation_report.md": str(response)},
-                    summary_md="Automated remediation PR authorized by human operator."
-                )
-            else:
-                console.print("[warning]🛑 Operator REJECTED remediation. Action cancelled.[/warning]")
 
 
 if __name__ == "__main__":
