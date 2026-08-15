@@ -52,7 +52,10 @@ docker compose run --build --rm strands-agent
 
 ---
 
-📋 Architecture Overview
+### 📋 Architecture Overview
+
+```env
+
 ┌─────────────────────────┐         stdio MCP          ┌───────────────────────────┐
 │                         │ ─────────────────────────> │                           │
 │   Strands Agent Engine  │                            │  Custom MCP Server        │
@@ -65,3 +68,4 @@ docker compose run --build --rm strands-agent
 ┌─────────────────────────┐
 │   GitHub Auto-PR Tool   │ ───> Creates Branch & Governance PR
 └─────────────────────────┘
+```
