@@ -100,7 +100,7 @@ Do you authorize automated remediation and GitHub PR creation? [y/n] (n): y
 ### 2. Automated Remediation Pull Request
 Upon operator approval, Albugent 2.0 automatically creates a dedicated git branch and submits a comprehensive Pull Request containing the governance audit report:
 
-/Users/diana/Documents/GitHub/albugent_v2.0/docs/images/Automated PR showcase.png
+![Automated PR Showcase] (./docs/images/Automated PR showcase.png)
 
 ### 📄 License
 This project is licensed under the Apache-2.0 License - see the LICENSE file for details.
