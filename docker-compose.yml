@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   strands-agent:
     build:
@@ -9,6 +7,7 @@ services:
     container_name: albugent-strands-agent
     volumes:
       - ./mcp_server:/app/mcp_server
+      - ./agent:/app 
     stdin_open: true # Интерактивный ввод
     tty: true        # Включает псевдотерминал для Rich UI
     environment:

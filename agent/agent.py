@@ -1,215 +1,196 @@
 import os
 import sys
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-import json
-import asyncio
-from datetime import datetime
-from typing import Dict, Any, List
+from typing import List, Dict, Any
+from dotenv import load_dotenv
 
-from strands import Agent, tool
-from strands.models import BedrockModel
-from mcp import ClientSession, StdioServerParameters
+from github import Github, GithubException, Auth
+
+# MCP & Strands SDK Imports
+from mcp import StdioServerParameters
 from mcp.client.stdio import stdio_client
-from github import Github
+
+from strands import Agent
+from strands.tools.mcp.mcp_client import MCPClient
+from strands.models import BedrockModel
 
 from rich.console import Console
 from rich.panel import Panel
-from rich.prompt import Confirm
-from rich.table import Table
+from rich.prompt import Prompt
 from rich.theme import Theme
 
-from prompts.system_prompts import SYSTEM_PROMPT
+# Load Environment Variables
+load_dotenv()
 
-# Настройка красивой консоли Rich
+# Initialize Rich Console
 custom_theme = Theme({
     "info": "cyan",
     "warning": "yellow",
-    "danger": "bold red",
+    "error": "bold red",
     "success": "bold green",
-    "highlight": "magenta"
+    "highlight": "magenta",
 })
 console = Console(theme=custom_theme)
 
+# Initialize AWS Bedrock Model via Strands SDK
+bedrock_model = BedrockModel(
+    model_id=os.getenv("AWS_BEDROCK_MODEL_ID", "amazon.nova-pro-v1:0"),
+    region_name=os.getenv("AWS_REGION", "us-east-1"),
+)
 
-# 1. GitHub Engine
-class GitHubEngine:
-    def __init__(self):
-        self.token = os.environ.get("GITHUB_TOKEN")
-        self.repo_name = os.environ.get("GITHUB_REPOSITORY")
-        self.gh = Github(self.token) if (self.token and self.repo_name) else None
+# -------------------------------------------------------------------
+# 1. MCP Transport Factory Setup (AWS Strands Official Pattern)
+# -------------------------------------------------------------------
 
-    def create_remediation_pr(self, artifacts: Dict[str, str], summary_md: str) -> str:
-        if not self.gh:
-            console.print("[warning]⚠️ [Git Engine] Dry-run mode (GITHUB_TOKEN missing). Skipping PR creation.[/warning]")
-            return "Dry-run execution complete."
+
+mcp_server_path = "/app/mcp_server/mcp_server.py"
+mcp_working_dir = "/app/mcp_server"
+
+server_params = StdioServerParameters(
+    command="python",
+    args=[mcp_server_path],
+    cwd=mcp_working_dir,  # Указываем подпроцессу запуск ИЗ папки mcp_server
+    env=os.environ.copy()
+)
+
+def create_stdio_transport():
+    """Factory function returning the Stdio client transport context."""
+    return stdio_client(server_params)
+
+# Initialize MCPClient with the factory
+mcp_client = MCPClient(create_stdio_transport)
+
+
+# -------------------------------------------------------------------
+# 2. Tool: GitHub Auto-Remediation PR Tool
+# -------------------------------------------------------------------
+def create_remediation_pr(issue_description: str) -> str:
+    """Generates an automated remediation branch and Pull Request on GitHub."""
+    github_token = os.getenv("GITHUB_TOKEN")
+    github_repo_name = os.getenv("GITHUB_REPOSITORY")
+
+    if not github_token or not github_repo_name:
+        return "Error: GITHUB_TOKEN or GITHUB_REPOSITORY environment variables are missing."
+
+    try:
+        gh = Github(auth=Auth.Token(github_token))
+        repo = gh.get_repo(github_repo_name)
+
+        main_branch = repo.get_branch("main")
+        new_branch_name = f"fix/albugent-governance-{os.urandom(4).hex()}"
+        repo.create_git_ref(ref=f"refs/heads/{new_branch_name}", sha=main_branch.commit.sha)
+
+        file_path = "remediation_report.md"
+        content = (
+            f"# 🛡️ Albugent Autonomous Remediation Report\n\n"
+            f"**Audit Status:** Action Required\n"
+            f"**Details:** {issue_description}\n\n"
+            f"_Automated Governance Action Authorized by Human Operator._\n"
+        )
 
         try:
-            repo = self.gh.get_repo(self.repo_name)
-            default_branch = repo.default_branch
-            ref = repo.get_git_ref(f"heads/{default_branch}")
-            
-            branch_name = f"fix/albugent-governance-{int(datetime.now().timestamp())}"
-            repo.create_git_ref(ref=f"refs/heads/{branch_name}", sha=ref.object.sha)
-
-            for filepath, content in artifacts.items():
-                if not content:
-                    continue
-                repo.create_file(
-                    path=f"generated_code/{filepath}",
-                    message=f"Albugent 2.0: Auto-remediation for {filepath}",
-                    content=content,
-                    branch=branch_name
-                )
-
-            pr = repo.create_pull(
-                title="🤖 [Albugent 2.0] Automated Lineage & PII Remediation PR",
-                body=summary_md,
-                head=branch_name,
-                base=default_branch
+            existing_file = repo.get_contents(file_path, ref=new_branch_name)
+            repo.update_file(
+                path=file_path,
+                message="Albugent 2.0: Update governance remediation report",
+                content=content,
+                sha=existing_file.sha,
+                branch=new_branch_name
             )
-            console.print(f"[success]🚀 Created GitHub PR:[/success] [link={pr.html_url}]{pr.html_url}[/link]")
-            return pr.html_url
-        except Exception as e:
-            console.print(f"[danger]❌ [Git Engine Error]: {e}[/danger]")
-            return str(e)
+        except GithubException:
+            repo.create_file(
+                path=file_path,
+                message="Albugent 2.0: Auto-remediation for remediation_report.md",
+                content=content,
+                branch=new_branch_name
+            )
+
+        pr = repo.create_pull(
+            title="[Albugent 2.0] Automated Lineage & PII Remediation PR",
+            body=(
+                f"Automated governance remediation PR triggered by Albugent 2.0 Engine.\n\n"
+                f"**Audit Summary:**\n{issue_description}"
+            ),
+            head=new_branch_name,
+            base="main"
+        )
+        return f"SUCCESS: Created GitHub PR: {pr.html_url}"
+
+    except Exception as e:
+        return f"Error creating GitHub PR: {str(e)}"
 
 
-# 2. Основной оркестратор
-async def run_albugent_pipeline():
+# -------------------------------------------------------------------
+# 3. Main Execution Workflow
+# -------------------------------------------------------------------
+def main():
+    console.clear()
     console.print(Panel.fit(
-        "[bold magenta]ALBUGENT 2.0[/bold magenta] | Governance Agent Engine\n"
-        "[dim]Powered by AWS Strands SDK + MCP + AWS Bedrock[/dim]",
+        "[bold white]🤖 ALBUGENT 2.0: DATA GOVERNANCE ENGINE[/bold white]\n"
+        "[dim]Powered by AWS Strands SDK, Native MCP, & Bedrock Nova Pro[/dim]",
+        style="blue"
+    ))
+
+    # Connect to MCP server within Context Manager
+    with mcp_client:
+        console.print("[info]🔌 Connected to Custom MCP Server via Stdio Transport.[/info]")
+        
+        # Retrieve tools directly from the MCP Server
+        mcp_tools = mcp_client.list_tools_sync()
+        console.print(f"[info]🛠️ Loaded {len(mcp_tools)} MCP tools from server.[/info]")
+
+        # Create Agent with combined tools (MCP + GitHub PR)
+        agent = Agent(
+            model=bedrock_model,
+            tools=[*mcp_tools, create_remediation_pr],
+            system_prompt=(
+                "You are the Lead Data Governance Orchestrator for Albugent 2.0.\n"
+                "Your workflow:\n"
+                "1. Use `analyze_lineage_graph` and `score_dataset_risk` MCP tools to assess datasets.\n"
+                "2. Evaluate dataset risks. If any dataset crosses the risk threshold of 0.65, "
+                "highlight the vulnerability clearly.\n"
+                "3. Provide a concise final decision summary."
+            )
+        )
+
+        with console.status("[bold green]Executing Governance Audit...", spinner="dots"):
+            audit_response = agent(
+    "Run a full governance audit on the enterprise data pipeline. Identify high centrality nodes and PII risks."
+)
+
+    console.print("\n")
+    console.print(Panel(
+        f"[bold font]{audit_response}[/bold font]",
+        title="[bold cyan]Final Agent Governance Decision[/bold cyan]",
         border_style="cyan"
     ))
 
-    git_engine = GitHubEngine()
+    # Human-In-The-Loop (HITL) Guardrail
+    console.print("\n")
+    console.print(Panel(
+        "[bold yellow]🚨 GOVERNANCE AUDIT COMPLETE[/bold yellow]\n"
+        "High-priority or sensitive data lineage fields evaluated.\n"
+        "Automated remediation is ready for deployment.",
+        title="[bold red]Human-In-The-Loop Intervention Required[/bold red]",
+        border_style="red"
+    ))
 
-    mcp_params = StdioServerParameters(
-        command="python",
-        args=["/app/mcp_server/mcp_server.py"],
-        env=os.environ.copy()
+    user_input = Prompt.ask(
+        "\n[bold yellow]Do you authorize automated remediation and GitHub PR creation?[/bold yellow]",
+        choices=["y", "n"],
+        default="n"
     )
 
-    bedrock_model = BedrockModel(
-        model_id=os.environ.get("AWS_BEDROCK_MODEL_ID", "amazon.nova-pro-v1:0"),
-        region_name=os.environ.get("AWS_REGION", "us-east-1")
-    )
-
-    async with stdio_client(mcp_params) as (read, write):
-        async with ClientSession(read, write) as session:
-            with console.status("[bold info]Initializing MCP Analytics Session...", spinner="dots"):
-                await session.initialize()
-
-            loop = asyncio.get_running_loop()
-
-            # --- Инструменты MCP ---
-            @tool
-            def analyze_lineage_graph(nodes: List[str], edges: List[List[str]]) -> str:
-                """Analyzes lineage graph for dataset nodes and edges to calculate centrality scores."""
-                console.print("[info]🔧 [MCP Tool] Executing analyze_lineage_graph...[/info]")
-                coro = session.call_tool("analyze_lineage_graph", {"nodes": nodes, "edges": edges})
-                future = asyncio.run_coroutine_threadsafe(coro, loop)
-                res = future.result(timeout=30)
-                return str(res.content)
-
-            @tool
-            def score_dataset_risk(
-                urn: str,
-                fields: List[str],
-                centrality: float,
-                is_orphan: bool,
-                last_updated_ts: float = 0.0
-            ) -> str:
-                """Calculates total governance risk score for a dataset based on PII fields and centrality."""
-                console.print(f"[info]🔧 [MCP Tool] Scoring risk for {urn}...[/info]")
-                payload = {
-                    "urn": urn,
-                    "fields": fields,
-                    "centrality": centrality,
-                    "is_orphan": is_orphan,
-                    "last_updated_ts": last_updated_ts
-                }
-                coro = session.call_tool("score_dataset_risk", payload)
-                future = asyncio.run_coroutine_threadsafe(coro, loop)
-                res = future.result(timeout=30)
-                
-                # Печатаем аккуратную таблицу результатов оценки (без остановки потока!)
-                try:
-                    data = json.loads(res.content[0].text if isinstance(res.content, list) else res.content)
-                    risk_score = data.get("risk_score", 0.0)
-                    
-                    table = Table(title=f"Dataset Evaluation: {urn.split(',')[-2]}", show_header=True)
-                    table.add_column("Property", style="cyan")
-                    table.add_column("Value", style="bold white")
-                    table.add_row("URN", urn)
-                    table.add_row("Centrality", str(centrality))
-                    table.add_row("Risk Score", f"{risk_score:.2f}")
-                    console.print(table)
-                except Exception:
-                    pass
-
-                return str(res.content)
-
-            tools_for_agent = [analyze_lineage_graph, score_dataset_risk]
-
-            agent = Agent(
-                model=bedrock_model,
-                system_prompt=SYSTEM_PROMPT,
-                tools=tools_for_agent
-            )
-
-            # Мок-данные для проверки
-            mock_nodes = [
-                "urn:li:dataset:(postgres,healthcare_billing,PROD)",
-                "urn:li:dataset:(hive,nyc_taxi_trips,PROD)",
-                "urn:li:dataset:(snowflake,retail_customer_analytics,PROD)"
-            ]
-            mock_edges = [
-                ["urn:li:dataset:(postgres,healthcare_billing,PROD)", "urn:li:dataset:(snowflake,retail_customer_analytics,PROD)"]
-            ]
-
-            console.print("\n[bold cyan]🤖 [Agent Loop] Starting Autonomous Governance Audit...[/bold cyan]")
-
-            prompt_task = f"""
-            Perform governance audit for dataset nodes: {json.dumps(mock_nodes)} 
-            and lineage edges: {json.dumps(mock_edges)}.
-            Use the 'analyze_lineage_graph' tool to calculate centrality, and 'score_dataset_risk' 
-            for table fields ['id', 'patient_name', 'ssn', 'billing_amount'].
-            """
-
-            # 1. Агент автономно выполняет все инструменты
-            with console.status("[bold green]Agent thinking and executing tools...", spinner="bouncingBar"):
-                response = await asyncio.to_thread(agent, prompt_task)
-
-            # 2. Вывод итогового решения
-            console.print(Panel(
-                str(response),
-                title="[bold green]Final Agent Governance Decision[/bold green]",
-                border_style="green"
-            ))
-
-            # 3. Единая панель Human-In-The-Loop в самом конце
-            console.print(Panel(
-                "[danger]🚨 GOVERNANCE AUDIT COMPLETE[/danger]\n"
-                "Audit finished. Automated remediation is ready for deployment.",
-                title="Human-In-The-Loop Intervention Required",
-                border_style="red"
-            ))
-            
-            approved = Confirm.ask(
-                "[bold yellow]Do you authorize automated remediation and GitHub PR creation?[/bold yellow]",
-                console=console
-            )
-
-            if approved:
-                console.print("[success]✅ Operator APPROVED remediation. Creating PR...[/success]")
-                git_engine.create_remediation_pr(
-                    artifacts={"remediation_report.md": str(response)},
-                    summary_md="Automated remediation PR authorized by human operator."
-                )
-            else:
-                console.print("[warning]🛑 Operator REJECTED remediation. Action cancelled.[/warning]")
-
+    if user_input.lower() == "y":
+        console.print("\n[bold green]✅ Operator APPROVED remediation. Dispatching GitHub PR...[/bold green]")
+        with console.status("[bold green]Creating pull request on GitHub...", spinner="earth"):
+            pr_result = create_remediation_pr(str(audit_response))
+        
+        if "SUCCESS" in pr_result:
+            console.print(f"\n[bold success]🚀 {pr_result}[/bold success]\n")
+        else:
+            console.print(f"\n[bold error]❌ {pr_result}[/bold error]\n")
+    else:
+        console.print("\n[bold red]🛑 Operator REJECTED remediation. Action cancelled.[/bold red]\n")
 
 if __name__ == "__main__":
-    asyncio.run(run_albugent_pipeline())
+    main()
