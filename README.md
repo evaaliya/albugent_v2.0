@@ -69,3 +69,38 @@ docker compose run --build --rm strands-agent
 │   GitHub Auto-PR Tool   │ ───> Creates Branch & Governance PR
 └─────────────────────────┘
 ```
+
+---
+
+## 📸 Demo & Execution Flow
+
+### 1. Terminal Output & Human-In-The-Loop Approval
+When high-risk datasets or lineage vulnerabilities are detected, the agent triggers an interactive Human-In-The-Loop (HITL) prompt before dispatching any fixes:
+
+```text
+╭─────────────────────────────────── Final Agent Governance Decision ───────────────────────────────────╮
+│ <thinking> High-risk datasets identified with sensitive PII fields and high centrality scores.         │
+│ Automated remediation is ready for deployment. </thinking>                                            │
+│                                                                                                       │
+│ The governance audit on the enterprise data pipeline is complete.                                     │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+╭─────────────────────────────── Human-In-The-Loop Intervention Required ───────────────────────────────╮
+│ 🚨 GOVERNANCE AUDIT COMPLETE                                                                          │
+│ High-priority or sensitive data lineage fields evaluated.                                             │
+│ Automated remediation is ready for deployment.                                                        │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+Do you authorize automated remediation and GitHub PR creation? [y/n] (n): y
+
+✅ Operator APPROVED remediation. Dispatching GitHub PR...
+🚀 SUCCESS: Created GitHub PR: [https://github.com/evaaliya/albugent_v2.0/pull/3](https://github.com/evaaliya/albugent_v2.0/pull/3)
+```
+
+### 2. Automated Remediation Pull Request
+Upon operator approval, Albugent 2.0 automatically creates a dedicated git branch and submits a comprehensive Pull Request containing the governance audit report:
+
+/Users/diana/Documents/GitHub/albugent_v2.0/docs/images/Automated PR showcase.png
+
+### 📄 License
+This project is licensed under the Apache-2.0 License - see the LICENSE file for details.
