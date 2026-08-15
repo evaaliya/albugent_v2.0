@@ -39,3 +39,5 @@ wheels/
 .pytest_cache/
 .coverage
 htmlcov/
+__pycache__/
+comands.md
