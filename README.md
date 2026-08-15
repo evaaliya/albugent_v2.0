@@ -39,12 +39,18 @@ AWS_BEDROCK_MODEL_ID=amazon.nova-pro-v1:0
 
 GITHUB_TOKEN=your_github_personal_access_token
 GITHUB_REPOSITORY=owner/repository_name
+```
 
-2. Run with Docker Compose
+### 2. Run with Docker Compose
 Build and launch the agent environment in interactive mode:
 
-docker compose run --build --rm strands-agent
+```env
 
+docker compose run --build --rm strands-agent
+```
+
+
+---
 
 📋 Architecture Overview
 ┌─────────────────────────┐         stdio MCP          ┌───────────────────────────┐
