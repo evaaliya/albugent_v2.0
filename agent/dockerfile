@@ -1,10 +1,15 @@
 FROM python:3.11-slim
 
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
-COPY requirements.txt .
+# Копируем requirements именно из папки agent
+COPY agent/requirements.txt .
 RUN pip install --no-cache-dir --default-timeout=1000 -r requirements.txt
 
+# Копируем ВЕСЬ проект в /app контейнера (чтобы были и context_builder, и mcp_server, и data)
 COPY . .
 
-ENTRYPOINT ["python", "agent.py"]
+# Запускаем скрипт агента от корня /app
+ENTRYPOINT ["python", "agent/agent.py"]

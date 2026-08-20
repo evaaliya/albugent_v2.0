@@ -1,16 +1,16 @@
 FROM python:3.11-slim
 
+ENV PYTHONPATH=/app
 WORKDIR /app
 
-# Установка системных зависимостей
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY mcp_server/requirements.txt .
 RUN pip install --no-cache-dir --default-timeout=1000 -r requirements.txt
 
+# Копируем весь корень проекта
 COPY . .
 
-# Запуск MCP сервера через stdio / SSE
-ENTRYPOINT ["python", "mcp_server.py"]
+ENTRYPOINT ["python", "mcp_server/mcp_server.py"]

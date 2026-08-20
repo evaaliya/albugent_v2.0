@@ -1,0 +1,37 @@
+name: Albugent Governance & Quality CI
+
+# 1. Запуск по расписанию (Cron) и вручную по кнопке из GitHub
+on:
+  schedule:
+    - cron: '0 6 * * *' # Каждый день в 06:00 UTC
+  workflow_dispatch:     # Кнопка "Run workflow" в интерфейсе GitHub
+
+jobs:
+  audit-and-build:
+    name: Run Autonomous Data Governance Agent
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Клонируем репозиторий
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Step 2: Настраиваем Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Step 3: Собираем Docker-контейнеры
+      - name: Build Docker Services
+        run: docker compose build
+
+      # Step 4: Запускаем ПОЛНЫЙ цикл Агента (MCP Scan + Bedrock Reasoning + Draft PR)
+      - name: Execute Albugent Autonomous Workflow
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_BEDROCK_MODEL_ID: ${{ secrets.AWS_BEDROCK_MODEL_ID }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          docker compose run --rm strands-agent python agent/agent.py

@@ -6,6 +6,10 @@
 
 # Кеш Python и артефакты
 __pycache__/
+*.pyc
+.venv/
+venv/
+env/
 *.py[cod]
 *$py.class
 *.so
@@ -41,3 +45,8 @@ wheels/
 htmlcov/
 __pycache__/
 comands.md
+*.sqlite
+*sqlite3
+*.db
+
+data/healthcare/healthcare_dataset.csv

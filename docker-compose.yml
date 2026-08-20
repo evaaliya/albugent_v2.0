@@ -1,16 +1,17 @@
 services:
   strands-agent:
     build:
-      context: ./agent
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: agent/Dockerfile
     image: albugent/agent:1.0
     container_name: albugent-strands-agent
     volumes:
-      - ./mcp_server:/app/mcp_server
-      - ./agent:/app 
+      # Смонтировать ВЕСЬ корень проекта в контейнер:
+      - .:/app
     stdin_open: true # Интерактивный ввод
     tty: true        # Включает псевдотерминал для Rich UI
     environment:
+      - PYTHONPATH=/app
       - PYTHONUNBUFFERED=1
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}

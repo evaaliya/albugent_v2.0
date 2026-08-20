@@ -79,7 +79,7 @@ When high-risk datasets or lineage vulnerabilities are detected, the agent trigg
 
 ```text
 ╭─────────────────────────────────── Final Agent Governance Decision ───────────────────────────────────╮
-│ <thinking> High-risk datasets identified with sensitive PII fields and high centrality scores.         │
+│ <thinking> High-risk datasets identified with sensitive PII fields and high centrality scores.        │
 │ Automated remediation is ready for deployment. </thinking>                                            │
 │                                                                                                       │
 │ The governance audit on the enterprise data pipeline is complete.                                     │
