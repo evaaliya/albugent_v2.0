@@ -6,6 +6,11 @@ on:
     - cron: '0 6 * * *' # Каждый день в 06:00 UTC
   workflow_dispatch:     # Кнопка "Run workflow" в интерфейсе GitHub
 
+  # Добавляем права на запись в репозиторий и создание Pull Requests
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   audit-and-build:
     name: Run Autonomous Data Governance Agent
