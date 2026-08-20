@@ -71,21 +71,26 @@ def main():
     with console.status("[bold green]Executing Cognitive Governance Audit...", spinner="dots"):
         audit_response = agent(user_payload_message)
 
-    # Очистка JSON-ответа от Bedrock Nova Pro
-    clean_json_str = str(audit_response).strip()
-    if clean_json_str.startswith("```"):
-        clean_json_str = clean_json_str.split("\n", 1)[1].rsplit("```", 1)[0]
+    # Чистка и надежный парсинг JSON
+    raw_text = str(audit_response).strip()
     
+    # Удаляем ```json и ``` если модель их вставила
+    if "```" in raw_text:
+        raw_text = raw_text.split("```")[1]
+        if raw_text.startswith("json"):
+            raw_text = raw_text[4:]
+    raw_text = raw_text.strip()
+
     try:
-        result = json.loads(clean_json_str.strip())
-        pr_body = result.get("pr_body", str(audit_response))
-        remediation_path = result.get("remediation_file_path", "models/cleaned_data.sql")
-        sql_code = result.get("sql_code", "-- No SQL code generated")
-    except json.JSONDecodeError:
-        # Резервный вариант, если модель выдала чистый текст
-        pr_body = str(audit_response)
-        remediation_path = "models/cleaned_data.sql"
-        sql_code = "-- Check audit summary in PR description"
+        data = json.loads(raw_text)
+        pr_body = data.get("pr_body", str(audit_response))
+        remediation_path = data.get("remediation_file_path", "models/cleaned_patients.sql")
+        sql_code = data.get("sql_code", "-- Default fallback SQL\nSELECT * FROM patients WHERE id IS NOT NULL;")
+    except Exception as e:
+        console.print(f"[bold red]⚠️ JSON Parse Warning: {e}. Falling back to default layout.[/bold red]")
+        pr_body = f"## 🛡️ Albugent Autonomous Governance Audit\n\n{audit_response}"
+        remediation_path = "models/cleaned_patients.sql"
+        sql_code = "-- SQL Auto-generation failed. Please review raw audit text."
 
     console.print("\n")
     console.print(Panel(
