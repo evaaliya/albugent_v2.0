@@ -47,6 +47,5 @@ __pycache__/
 comands.md
 *.sqlite
 *sqlite3
-*.db
 
-data/healthcare/healthcare_dataset.csv
+

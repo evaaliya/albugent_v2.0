@@ -71,28 +71,27 @@ def main():
     with console.status("[bold green]Executing Cognitive Governance Audit...", spinner="dots"):
         audit_response = agent(user_payload_message)
 
-    # Чистка и надежный парсинг JSON
-    raw_text = str(audit_response).strip()
+     # Жесткое извлечение JSON из ответа
+    raw_response = str(audit_response).strip()
     
-    # Удаляем ```json и ``` если модель их вставила
-    if "```" in raw_text:
-        raw_text = raw_text.split("```")[1]
-        if raw_text.startswith("json"):
-            raw_text = raw_text[4:]
-    raw_text = raw_text.strip()
+    # Режем всё, что выходит за пределы фигурных скобок JSON
+    if "{" in raw_response and "}" in raw_response:
+        start_idx = raw_response.find("{")
+        end_idx = raw_response.rfind("}") + 1
+        raw_response = raw_response[start_idx:end_idx]
 
     try:
-        data = json.loads(raw_text)
-        pr_body = data.get("pr_body", str(audit_response))
+        data = json.loads(raw_response)
+        pr_body = data.get("pr_body", "Error parsing PR body markdown.")
         remediation_path = data.get("remediation_file_path", "models/cleaned_patients.sql")
-        sql_code = data.get("sql_code", "-- Default fallback SQL\nSELECT * FROM patients WHERE id IS NOT NULL;")
+        sql_code = data.get("sql_code", "-- No SQL code generated")
     except Exception as e:
-        console.print(f"[bold red]⚠️ JSON Parse Warning: {e}. Falling back to default layout.[/bold red]")
-        pr_body = f"## 🛡️ Albugent Autonomous Governance Audit\n\n{audit_response}"
+        console.print(f"[bold red]⚠️ Failed to parse JSON: {e}[/bold red]")
+        pr_body = f"## 🛡️ Data Governance Audit Report\n\n{str(audit_response)}"
         remediation_path = "models/cleaned_patients.sql"
-        sql_code = "-- SQL Auto-generation failed. Please review raw audit text."
+        sql_code = "-- Error parsing model response"
 
-    console.print("\n")
+    console.print("\n[bold green]✅ Audit response successfully processed.[/bold green]")
     console.print(Panel(
         f"[bold font]{pr_body}[/bold font]",
         title="[bold cyan]Generated Audit Summary[/bold cyan]",
