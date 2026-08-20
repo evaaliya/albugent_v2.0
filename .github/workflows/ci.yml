@@ -39,10 +39,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
-         docker compose run --rm strands-agent python data/healthcare/create_db.py || true
-           docker compose run --rm strands-agent python data/nyc-taxi/create_db.py || true
-           docker compose run --rm strands-agent python data/fiction-retail/create_db.py || true
-
           docker compose run --rm \
             -e AWS_ACCESS_KEY_ID \
             -e AWS_SECRET_ACCESS_KEY \
@@ -50,4 +46,9 @@ jobs:
             -e AWS_BEDROCK_MODEL_ID \
             -e GITHUB_TOKEN \
             -e GITHUB_REPOSITORY \
-            strands-agent python agent/agent.py
+            strands-agent bash -c "
+             python data/healthcare/create_db.py && \
+             python data/nyc-taxi/create_db.py && \
+             python data/fiction-retail/create_db.py && \
+             python agent/agent.py
+            "

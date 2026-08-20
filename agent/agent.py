@@ -79,7 +79,16 @@ def main():
         start_idx = raw_response.find("{")
         end_idx = raw_response.rfind("}") + 1
         raw_response = raw_response[start_idx:end_idx]
+   
+    # Clean potential backticks if the model ignores the instruction
+    clean_response = raw_response.strip()
+    if clean_response.startswith("```"):
+       clean_response = clean_response.split("\n", 1)[-1]
+    if clean_response.endswith("```"):
+       clean_response = clean_response.rsplit("```", 1)[0]
+    clean_response = clean_response.strip()
 
+    data = json.loads(clean_response)
     try:
         data = json.loads(raw_response)
         pr_body = data.get("pr_body", "Error parsing PR body markdown.")

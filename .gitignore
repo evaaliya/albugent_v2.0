@@ -48,4 +48,14 @@ comands.md
 *.sqlite
 *sqlite3
 
+# Ignore all SQLite databases and raw data binaries
+*.db
+*.sqlite
+*.sqlite3
+data/**/*.db
+data/**/*.csv
 
+# Keep directory structure
+!data/**/.gitkeep
+*.db
+data/**/*.csv
