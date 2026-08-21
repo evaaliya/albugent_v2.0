@@ -57,57 +57,75 @@ def main():
     
     console.print("[info]✅ Governance Context (Profile, Lineage, Risk) fully aggregated.[/info]")
 
-    # 2. ИНИЦИАЛИЗАЦИЯ И ВЫЗОВ АГЕНТА
+    # =========================================================================
+    # 2. ИНИЦИАЛИЗАЦИЯ И ДВУХШАГОВАЯ ГЕНЕРАЦИЯ (Без JSON-парсинга и блокировок)
+    # =========================================================================
     agent = Agent(
         model=bedrock_model,
         system_prompt=GOVERNANCE_SYSTEM_PROMPT
     )
 
-    user_payload_message = (
-        "Run a full governance audit on the following pre-computed enterprise pipeline payload:\n\n"
-        f"```json\n{context_json_str}\n```"
+    # --- ШАГ 1: Генерируем чистый SQL-код очистки данных ---
+    sql_prompt = (
+        "Analyze this data governance context and output ONLY valid ANSI SQL code "
+        "to cleanse detected anomalies (NULLs, negative values, outliers). "
+        "Do not write conversational text:\n\n"
+        f"{context_json_str}"
+    )
+    
+    with console.status("[bold green]Step 1/2: Generating SQL Remediation Script...", spinner="dots"):
+        sql_response_raw = str(agent(sql_prompt)).strip()
+        
+    # Извлекаем чистый SQL из возможного markdown-блока ```sql
+    if "```sql" in sql_response_raw:
+        sql_code = sql_response_raw.split("```sql")[1].split("```")[0].strip()
+    elif "```" in sql_response_raw:
+        sql_code = sql_response_raw.split("```")[1].split("```")[0].strip()
+    else:
+        sql_code = sql_response_raw
+
+
+    # --- ШАГ 2: Генерируем Markdown-отчет для PR Body ---
+    pr_body_prompt = (
+        "Generate a clean, professional GitHub Pull Request Markdown report "
+        "based on this data audit payload. Include a Table of Quality Variances, "
+        "Lineage Status (PAUSED / OPERATIONAL), and a note about staged SQL fixes. "
+        "Do not wrap in JSON:\n\n"
+        f"{context_json_str}"
     )
 
-    with console.status("[bold green]Executing Cognitive Governance Audit...", spinner="dots"):
-        audit_response = agent(user_payload_message)
+    with console.status("[bold cyan]Step 2/2: Generating PR Audit Summary...", spinner="dots"):
+        pr_body_raw = str(agent(pr_body_prompt)).strip()
 
-     # Жесткое извлечение JSON из ответа
-    raw_response = str(audit_response).strip()
-    
-    # Режем всё, что выходит за пределы фигурных скобок JSON
-    if "{" in raw_response and "}" in raw_response:
-        start_idx = raw_response.find("{")
-        end_idx = raw_response.rfind("}") + 1
-        raw_response = raw_response[start_idx:end_idx]
-   
-    # Clean potential backticks if the model ignores the instruction
-    clean_response = raw_response.strip()
-    if clean_response.startswith("```"):
-       clean_response = clean_response.split("\n", 1)[-1]
-    if clean_response.endswith("```"):
-       clean_response = clean_response.rsplit("```", 1)[0]
-    clean_response = clean_response.strip()
+    # Извлекаем Markdown (если модель обернула его в ```markdown)
+    if "```markdown" in pr_body_raw:
+        pr_body = pr_body_raw.split("```markdown")[1].split("```")[0].strip()
+    elif "```" in pr_body_raw and not pr_body_raw.startswith("##"):
+        pr_body = pr_body_raw.split("```")[1].split("```")[0].strip()
+    else:
+        pr_body = pr_body_raw
 
-    data = json.loads(clean_response)
-    try:
-        data = json.loads(raw_response)
-        pr_body = data.get("pr_body", "Error parsing PR body markdown.")
-        remediation_path = data.get("remediation_file_path", "models/cleaned_patients.sql")
-        sql_code = data.get("sql_code", "-- No SQL code generated")
-    except Exception as e:
-        console.print(f"[bold red]⚠️ Failed to parse JSON: {e}[/bold red]")
-        pr_body = f"## 🛡️ Data Governance Audit Report\n\n{str(audit_response)}"
-        remediation_path = "models/cleaned_patients.sql"
-        sql_code = "-- Error parsing model response"
 
-    console.print("\n[bold green]✅ Audit response successfully processed.[/bold green]")
+    # --- ШАГ 3: Собираем безопасный Payload ---
+    remediation_path = "models/cleaned_patients.sql"
+
+    data_payload = {
+        "pr_body": pr_body,
+        "remediation_file_path": remediation_path,
+        "sql_code": sql_code
+    }
+
+    console.print("\n[bold green]✅ Governance Artifacts Successfully Constructed![/bold green]")
     console.print(Panel(
-        f"[bold font]{pr_body}[/bold font]",
+        f"[bold font]{data_payload['pr_body']}[/bold font]",
         title="[bold cyan]Generated Audit Summary[/bold cyan]",
         border_style="cyan"
     ))
 
-    # 3. АВТОНОМНОЕ СОЗДАНИЕ DRAFT PR (HITL via GitHub UI)
+
+    # =========================================================================
+    # 3. АВТОНОМНОЕ СОЗДАНИЕ DRAFT PR В GITHUB
+    # =========================================================================
     repo_name = os.getenv("GITHUB_REPOSITORY", "evaaliya/albugent_v2.0")
     
     console.print("\n[bold yellow]🚀 Dispatching Automated Draft Remediation PR to GitHub...[/bold yellow]")
@@ -116,9 +134,9 @@ def main():
         pr_url = create_remediation_pr(
             repo_name=repo_name,
             pr_title="🚨 [Albugent Draft] Automated Data Cleansing & Circuit Breaker Proposal",
-            pr_body_markdown=pr_body,
-            remediation_file_path=remediation_path,
-            remediation_sql_code=sql_code
+            pr_body_markdown=data_payload["pr_body"],
+            remediation_file_path=data_payload["remediation_file_path"],
+            remediation_sql_code=data_payload["sql_code"]
         )
 
     if "http" in pr_url:
