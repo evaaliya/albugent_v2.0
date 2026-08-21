@@ -1,0 +1,1 @@
+-- No SQL remediation script is required as no anomalies were detected.
