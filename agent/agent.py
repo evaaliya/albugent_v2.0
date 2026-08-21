@@ -3,6 +3,7 @@ import sys
 import json
 from dotenv import load_dotenv
 from pathlib import Path
+from collections import defaultdict
 
 # Выравниваем пути
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -86,6 +87,36 @@ WHERE billing_amount >= 0 OR billing_amount IS NULL;
 """
     return sql_code
 
+
+def summarize_anomalies_for_prompt(raw_context):
+    """
+    Группирует сырые аномалии по таблицам и типам, чтобы не превысить лимит токенов,
+    но сохранить полную статистику (сколько именно отрицательных чисел/null'ов найдено).
+    """
+    summary = defaultdict(lambda: defaultdict(int))
+    
+    # Предполагаем, что raw_context содержит список аномалий или словарь с ними
+    # Подстройте под структуру вашего raw_context, если ключи отличаются
+    anomalies_list = raw_context.get("anomalies", raw_context) if isinstance(raw_context, dict) else raw_context
+    
+    if isinstance(anomalies_list, list):
+        for item in anomalies_list:
+            dataset = item.get("dataset", item.get("urn", "unknown_dataset"))
+            column = item.get("column", "unknown_column")
+            entry_type = item.get("entry_type", item.get("type", "Quality Variance"))
+            
+            key = (dataset, column, entry_type)
+            summary[dataset][(column, entry_type)] += 1
+
+    # Формируем компактный и читаемый текст для промпта
+    report_lines = []
+    for dataset, cols in summary.items():
+        report_lines.append(f"Dataset: {dataset}")
+        for (col, err_type), count in cols.items():
+            report_lines.append(f"  - Column '{col}': {count} occurrences of '{err_type}'")
+            
+    return "\n".join(report_lines)
+
 def main():
     console.print(Panel.fit(
         "[bold white]🤖 ALBUGENT 2.0: AUTONOMOUS DATA GOVERNANCE ENGINE[/bold white]\n"
@@ -104,11 +135,14 @@ def main():
     # 2. ДЕТЕРМИНИРОВАННАЯ ГЕНЕРАЦИЯ АРТЕФАКТОВ
     # =========================================================================
     
-    # 1. Сборка SQL-артефакта через Python Engine (0% блокировок AWS Bedrock)
+    # 1. Генерируем SQL детерминированно в Python
     console.print("\n[bold green]🛠️ Building Deterministic SQL Remediation Artifact...[/bold green]")
     sql_code = build_sql_remediation_artifact(raw_context)
 
-    # 2. Вызов Bedrock ТОЛЬКО для генерации текстового Markdown-отчета
+    # 2. Агрегируем аномалии для промпта
+    aggregated_summary = summarize_anomalies_for_prompt(raw_context)
+
+    # 3. Вызываем Bedrock для генерации отчета
     agent = Agent(
         model=bedrock_model,
         system_prompt=GOVERNANCE_SYSTEM_PROMPT
@@ -116,39 +150,28 @@ def main():
 
     pr_body_prompt = (
         "Generate a concise, professional GitHub Pull Request summary in clean Markdown "
-        "based on this data audit payload. Include a Table of Quality Variances and "
-        "Pipeline Lineage Status (PAUSED / OPERATIONAL). Do NOT write any SQL code:\n\n"
-        f"{context_json_str}"
+        "based on this aggregated data audit summary. Include a structured Table of Quality Variances "
+        "showing exact counts per column and error type, and Pipeline Lineage Status. "
+        "Strictly output ONLY Markdown text. Do NOT include SQL code blocks in this description:\n\n"
+        f"{aggregated_summary}"
     )
 
     with console.status("[bold cyan]Generating PR Audit Summary via Bedrock...", spinner="dots"):
         pr_body_raw = str(agent(pr_body_prompt)).strip()
 
-    # Очистка ответа от возможных тройных кавычек markdown
-    if "```markdown" in pr_body_raw:
-        pr_body = pr_body_raw.split("```markdown")[1].split("```")[0].strip()
-    elif "```" in pr_body_raw and not pr_body_raw.startswith("##"):
-        pr_body = pr_body_raw.split("```")[1].split("```")[0].strip()
-    else:
-        pr_body = pr_body_raw
+    # Очищаем возможные обертки markdown
+    pr_body = pr_body_raw
+    if "```markdown" in pr_body:
+        pr_body = pr_body.split("```markdown")[1].split("```")[0].strip()
+    elif "```" in pr_body:
+        pr_body = pr_body.split("```")[1].split("```")[0].strip()
 
-    # 3. Финальная сборка payload
-    data_payload = {
-        "pr_body": pr_body,
-        "remediation_file_path": "models/cleaned_patients.sql",
-        "sql_code": sql_code
-    }
+    # Заменяем literal \n на реальные переносы строк, если они экранированы
+    pr_body = pr_body.replace("\\n", "\n")
 
     console.print("\n[bold green]✅ Governance Artifacts Successfully Constructed![/bold green]")
-    console.print(Panel(
-        f"[bold font]{data_payload['pr_body']}[/bold font]",
-        title="[bold cyan]Generated Audit Summary[/bold cyan]",
-        border_style="cyan"
-    ))
 
-    # =========================================================================
-    # 3. АВТОНОМНОЕ СОЗДАНИЕ DRAFT PR В GITHUB
-    # =========================================================================
+    # 4. АВТОНОМНОЕ СОЗДАНИЕ DRAFT PR В GITHUB
     repo_name = os.getenv("GITHUB_REPOSITORY", "evaaliya/albugent_v2.0")
     
     console.print("\n[bold yellow]🚀 Dispatching Automated Draft Remediation PR to GitHub...[/bold yellow]")
@@ -157,9 +180,9 @@ def main():
         pr_url = create_remediation_pr(
             repo_name=repo_name,
             pr_title="🚨 [Albugent Draft] Automated Data Cleansing & Circuit Breaker Proposal",
-            pr_body_markdown=data_payload["pr_body"],
-            remediation_file_path=data_payload["remediation_file_path"],
-            remediation_sql_code=data_payload["sql_code"]
+            pr_body_markdown=pr_body,                  # Текст отчета с таблицей
+            remediation_file_path="models/cleaned_patients.sql",
+            remediation_sql_code=sql_code              # Тот самый сгенерированный SQL-код
         )
 
     if "http" in pr_url:
@@ -167,7 +190,6 @@ def main():
         console.print(f"[bold highlight]{pr_url}[/bold highlight]\n")
     else:
         console.print(f"\n[bold red]❌ Failed to create PR: {pr_url}[/bold red]\n")
-
 
 if __name__ == "__main__":
     main()

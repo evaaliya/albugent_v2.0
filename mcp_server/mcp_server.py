@@ -10,6 +10,7 @@ from mcp_server.utils.graph_engine import build_and_analyze_graph
 from mcp_server.utils.pii_detector import evaluate_dataset_risk, profile_table_anomalies
 from mcp_server.utils.lineage_discoverer import discover_lineage_edges, get_downstream_nodes
 from mcp_server.utils.db_utils import get_table_fields, get_last_modified_timestamp
+from mcp_server.utils.remediation_generator import generate_remediation_sql
 
 
 # Настройка логирования по Production стандартам
@@ -358,6 +359,7 @@ def auto_profile_dataset_anomalies(dataset_urn: str) -> Dict[str, Any]:
         "profile": profile_data,
         "downstream_impact_nodes": lineage_downstream
     }
+
 
 if __name__ == "__main__":
     mcp.run(transport="stdio")
