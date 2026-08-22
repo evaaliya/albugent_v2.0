@@ -21,16 +21,20 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # Step 2: СНАЧАЛА создаем структуру и скачиваем файлы на диск раннера
+      # Step 2: Скачиваем базы данных из GitHub Releases в правильную структуру папок для MCP
       - name: Download Datasets from Releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p data/fiction-retail
           mkdir -p data/healthcare
           mkdir -p data/nyc-taxi
           
-          curl -L -o data/fiction-retail/fiction-retail.db "https://github.com"
-          curl -L -o data/healthcare/healthcare.db "https://github.com"
-          curl -L -o data/nyc-taxi/nyc_taxi.db "https://github.com"
+          # Скачиваем файлы с авторизацией через токен, чтобы GitHub отдал реальные бинарники
+          curl -L -H "Authorization: token $GH_TOKEN" -o data/fiction-retail/fiction-retail.db "https://github.com"
+          curl -L -H "Authorization: token $GH_TOKEN" -o data/healthcare/healthcare.db "https://github.com"
+          curl -L -H "Authorization: token $GH_TOKEN" -o data/nyc-taxi/nyc_taxi.db "https://github.com"
+
 
       # Step 3: Сбрасываем права, чтобы Docker 100% увидел эти файлы
       - name: Fix permissions for Docker
