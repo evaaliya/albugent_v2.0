@@ -39,10 +39,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
-          docker compose run --rm strands-agent bash -c "
-             mkdir -p data/fiction-retail && \
-             curl -L "https://github.com/datahub-project/static-assets/blob/main/datasets/fiction-retail/fiction-retail.db" -o data/fiction-retail/fiction-retail.db && \
-             python data/healthcare/create_db.py && \
-             python data/nyc-taxi/create_db.py && \
-             python agent/agent.py
-           "
+          docker compose run --rm strands-agent bash -c "mkdir -p data/fiction-retail && curl -L 'https://raw.githubusercontent.com/datahub-project/static-assets/main/datasets/fiction-retail/fiction-retail.db' -o data/fiction-retail/fiction-retail.db && python data/healthcare/create_db.py && python data/nyc-taxi/create_db.py && python agent/agent.py"
