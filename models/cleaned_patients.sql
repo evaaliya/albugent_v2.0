@@ -1,0 +1,257 @@
+-- =====================================================================
+-- Albugent Autonomous Data Governance: Automated Remediation Script
+-- Target Table: raw_patients
+-- Generated Fixes:
+--   * Fixed invalid age range in column 'age'
+--   * Fixed invalid age range in column 'age'
+--   * Fixed negative values in numeric column 'billing_amount'
+--   * Replaced NULLs with 'UNKNOWN' in text column 'name'
+--   * Corrected inverted date logic between 'gender' and 'date_of_admission'
+--   * Corrected inverted date logic between 'gender' and 'admission_type'
+--   * Corrected inverted date logic between 'gender' and 'discharge_date'
+--   * Corrected inverted date logic between 'date_of_admission' and 'discharge_date'
+--   * Corrected inverted date logic between 'admission_type' and 'discharge_date'
+-- =====================================================================
+
+CREATE OR REPLACE TABLE cleaned_raw_patients AS
+SELECT 
+    * 
+FROM raw_patients;
+
+
+-- =====================================================================
+-- Albugent Autonomous Data Governance: Automated Remediation Script
+-- Target Table: staging_patients
+-- Generated Fixes:
+--   * Fixed invalid age range in column 'age'
+--   * Fixed invalid age range in column 'age'
+--   * Fixed negative values in numeric column 'billing_amount'
+--   * Replaced NULLs with 'UNKNOWN' in text column 'name'
+--   * Corrected inverted date logic between 'gender' and 'date_of_admission'
+--   * Corrected inverted date logic between 'gender' and 'admission_type'
+--   * Corrected inverted date logic between 'gender' and 'discharge_date'
+--   * Corrected inverted date logic between 'date_of_admission' and 'discharge_date'
+--   * Corrected inverted date logic between 'admission_type' and 'discharge_date'
+--   * Corrected inverted date logic between 'gender_clean' and 'admission_type_clean'
+-- =====================================================================
+
+CREATE OR REPLACE TABLE cleaned_staging_patients AS
+SELECT 
+    * 
+FROM staging_patients;
+
+
+-- =====================================================================
+-- Albugent Autonomous Data Governance: Automated Remediation Script
+-- Target Table: mart_billing
+-- Generated Fixes:
+--   * Fixed negative values in numeric column 'billing_amount'
+--   * Fixed negative values in numeric column 'length_of_stay_days'
+--   * Replaced NULLs with 'UNKNOWN' in text column 'name'
+--   * Corrected inverted date logic between 'admission_type' and 'date_of_admission'
+--   * Corrected inverted date logic between 'admission_type' and 'discharge_date'
+--   * Corrected inverted date logic between 'date_of_admission' and 'discharge_date'
+-- =====================================================================
+
+CREATE OR REPLACE TABLE cleaned_mart_billing AS
+SELECT 
+    * 
+FROM mart_billing;
+
+
+-- =====================================================================
+-- Albugent Autonomous Data Governance: Automated Remediation Script
+-- Target Table: mart_demographics
+-- Generated Fixes:
+--   * Fixed invalid age range in column 'age'
+--   * Fixed invalid age range in column 'age'
+--   * Replaced NULLs with 'UNKNOWN' in text column 'name'
+-- =====================================================================
+
+CREATE OR REPLACE TABLE cleaned_mart_demographics AS
+SELECT 
+    * 
+FROM mart_demographics;
+
+
+-- =====================================================================
+-- Albugent Autonomous Data Governance: Automated Remediation Script
+-- Target Table: customers
+-- Generated Fixes:
+--   * 
+-- =====================================================================
+
+CREATE OR REPLACE TABLE cleaned_customers AS
+SELECT 
+    * 
+FROM customers;
+
+
+-- =====================================================================
+-- Albugent Autonomous Data Governance: Automated Remediation Script
+-- Target Table: inventory
+-- Generated Fixes:
+--   * 
+-- =====================================================================
+
+CREATE OR REPLACE TABLE cleaned_inventory AS
+SELECT 
+    * 
+FROM inventory;
+
+
+-- =====================================================================
+-- Albugent Autonomous Data Governance: Automated Remediation Script
+-- Target Table: order_items
+-- Generated Fixes:
+--   * 
+-- =====================================================================
+
+CREATE OR REPLACE TABLE cleaned_order_items AS
+SELECT 
+    * 
+FROM order_items;
+
+
+-- =====================================================================
+-- Albugent Autonomous Data Governance: Automated Remediation Script
+-- Target Table: orders
+-- Generated Fixes:
+--   * Replaced NULLs with 0 in column 'promo_id'
+-- =====================================================================
+
+CREATE OR REPLACE TABLE cleaned_orders AS
+SELECT 
+    * 
+FROM orders;
+
+
+-- =====================================================================
+-- Albugent Autonomous Data Governance: Automated Remediation Script
+-- Target Table: products
+-- Generated Fixes:
+--   * 
+-- =====================================================================
+
+CREATE OR REPLACE TABLE cleaned_products AS
+SELECT 
+    * 
+FROM products;
+
+
+-- =====================================================================
+-- Albugent Autonomous Data Governance: Automated Remediation Script
+-- Target Table: promotions
+-- Generated Fixes:
+--   * 
+-- =====================================================================
+
+CREATE OR REPLACE TABLE cleaned_promotions AS
+SELECT 
+    * 
+FROM promotions;
+
+
+-- =====================================================================
+-- Albugent Autonomous Data Governance: Automated Remediation Script
+-- Target Table: returns
+-- Generated Fixes:
+--   * 
+-- =====================================================================
+
+CREATE OR REPLACE TABLE cleaned_returns AS
+SELECT 
+    * 
+FROM returns;
+
+
+-- =====================================================================
+-- Albugent Autonomous Data Governance: Automated Remediation Script
+-- Target Table: shipments
+-- Generated Fixes:
+--   * Replaced NULLs with 0 in column 'delivered_date'
+-- =====================================================================
+
+CREATE OR REPLACE TABLE cleaned_shipments AS
+SELECT 
+    * 
+FROM shipments;
+
+
+-- =====================================================================
+-- Albugent Autonomous Data Governance: Automated Remediation Script
+-- Target Table: suppliers
+-- Generated Fixes:
+--   * 
+-- =====================================================================
+
+CREATE OR REPLACE TABLE cleaned_suppliers AS
+SELECT 
+    * 
+FROM suppliers;
+
+
+-- =====================================================================
+-- Albugent Autonomous Data Governance: Automated Remediation Script
+-- Target Table: warehouses
+-- Generated Fixes:
+--   * 
+-- =====================================================================
+
+CREATE OR REPLACE TABLE cleaned_warehouses AS
+SELECT 
+    * 
+FROM warehouses;
+
+
+-- =====================================================================
+-- Albugent Autonomous Data Governance: Automated Remediation Script
+-- Target Table: raw_trips
+-- Generated Fixes:
+--   * Fixed negative values in numeric column 'pickup_longitude'
+--   * Fixed negative values in numeric column 'dropoff_longitude'
+--   * Fixed negative values in numeric column 'fare_amount'
+--   * Fixed negative values in numeric column 'extra'
+--   * Fixed negative values in numeric column 'mta_tax'
+--   * Fixed negative values in numeric column 'tip_amount'
+--   * Fixed negative values in numeric column 'tolls_amount'
+--   * Fixed negative values in numeric column 'improvement_surcharge'
+--   * Fixed negative values in numeric column 'total_amount'
+--   * Corrected inverted date logic between 'tpep_pickup_datetime' and 'tpep_dropoff_datetime'
+-- =====================================================================
+
+CREATE OR REPLACE TABLE cleaned_raw_trips AS
+SELECT 
+    * 
+FROM raw_trips;
+
+
+-- =====================================================================
+-- Albugent Autonomous Data Governance: Automated Remediation Script
+-- Target Table: staging_trips
+-- Generated Fixes:
+--   * Fixed negative values in numeric column 'pickup_longitude'
+--   * Fixed negative values in numeric column 'dropoff_longitude'
+--   * Fixed negative values in numeric column 'trip_duration_min'
+--   * Corrected inverted date logic between 'tpep_pickup_datetime' and 'tpep_dropoff_datetime'
+--   * Corrected inverted date logic between 'tpep_pickup_datetime' and 'trip_date'
+--   * Corrected inverted date logic between 'tpep_dropoff_datetime' and 'trip_date'
+-- =====================================================================
+
+CREATE OR REPLACE TABLE cleaned_staging_trips AS
+SELECT 
+    * 
+FROM staging_trips;
+
+
+-- =====================================================================
+-- Albugent Autonomous Data Governance: Automated Remediation Script
+-- Target Table: mart_daily_summary
+-- Generated Fixes:
+--   * 
+-- =====================================================================
+
+CREATE OR REPLACE TABLE cleaned_mart_daily_summary AS
+SELECT 
+    * 
+FROM mart_daily_summary;
