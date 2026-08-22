@@ -29,7 +29,7 @@ jobs:
       - name: Build Docker Services
         run: docker compose build
 
-      # Step 4: Запускаем ПОЛНЫЙ цикл Агента (MCP Scan + Bedrock Reasoning + Draft PR)
+      # Step 4: Запускаем ПОЛНЫЙ цикл Агента (Seed DBs + MCP Scan + Bedrock + Draft PR)
       - name: Execute Albugent Autonomous Workflow
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -39,16 +39,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
-          docker compose run --rm \
-            -e AWS_ACCESS_KEY_ID \
-            -e AWS_SECRET_ACCESS_KEY \
-            -e AWS_REGION \
-            -e AWS_BEDROCK_MODEL_ID \
-            -e GITHUB_TOKEN \
-            -e GITHUB_REPOSITORY \
-            strands-agent bash -c "
+          docker compose run --rm strands-agent bash -c "
              python data/healthcare/create_db.py && \
              python data/nyc-taxi/create_db.py && \
-             python data/fiction-retail/create_db.py && \
              python agent/agent.py
-            "
+          "

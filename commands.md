@@ -213,15 +213,42 @@ def evaluate_dataset_risk(
 
 
 
+data/**/*.db
+data/**/*.csv
+*.db
+*.db
+data/**/*.csv
+*.sqlite
+*.sqlite3
 
 
 
 
 
 
-
-
-
+# Step 4: Запускаем ПОЛНЫЙ цикл Агента (MCP Scan + Bedrock Reasoning + Draft PR)
+      - name: Execute Albugent Autonomous Workflow
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_BEDROCK_MODEL_ID: ${{ secrets.AWS_BEDROCK_MODEL_ID }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          docker compose run --rm \
+            -e AWS_ACCESS_KEY_ID \
+            -e AWS_SECRET_ACCESS_KEY \
+            -e AWS_REGION \
+            -e AWS_BEDROCK_MODEL_ID \
+            -e GITHUB_TOKEN \
+            -e GITHUB_REPOSITORY \
+            strands-agent bash -c "
+             python data/healthcare/create_db.py && \
+             python data/nyc-taxi/create_db.py && \
+             python data/fiction-retail/create_db.py && \
+             python agent/agent.py
+            "
 
 
 
