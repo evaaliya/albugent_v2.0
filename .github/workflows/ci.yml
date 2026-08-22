@@ -16,7 +16,7 @@ jobs:
     name: Run Autonomous Data Governance Agent
     runs-on: ubuntu-latest
 
-        steps:
+    steps:
       # Step 1: Клонируем репозиторий
       - name: Checkout Repository
         uses: actions/checkout@v4
