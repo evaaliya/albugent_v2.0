@@ -21,19 +21,20 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # Step 2: Скачиваем базы данных через официальный GitHub CLI
+      # Step 2: Скачиваем файлы из конкретного релиза v1.0.0
       - name: Download Datasets from Releases
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          mkdir -p data/fiction-retail
-          mkdir -p data/healthcare
-          mkdir -p data/nyc-taxi
-          
-          # Скачиваем файлы встроенной утилитой gh напрямую в нужные папки
-          gh release download v1.0.0 --repo ${{ github.repository }} --pattern "fiction-retail.db" --dir data/fiction-retail
-          gh release download v1.0.0 --repo ${{ github.repository }} --pattern "healthcare.db" --dir data/healthcare
-          gh release download v1.0.0 --repo ${{ github.repository }} --pattern "nyc_taxi.db" --dir data/nyc-taxi
+          mkdir -p data/fiction-retail data/healthcare data/nyc-taxi
+
+          curl -L -H "Authorization: token $GH_TOKEN" -o data/fiction-retail/fiction-retail.db "https://github.com/evaaliya/albugent_v2.0/releases/download/v1.0.0/fiction-retail.db"
+          curl -L -H "Authorization: token $GH_TOKEN" -o data/healthcare/healthcare.db "https://github.com/evaaliya/albugent_v2.0/releases/download/v1.0.0/healthcare.db"
+          curl -L -H "Authorization: token $GH_TOKEN" -o data/nyc-taxi/nyc_taxi.db "https://github.com/evaaliya/albugent_v2.0/releases/download/v1.0.0/nyc_taxi.db"
+
+      # Проверка: убеждаемся, что скачался SQLite файл, а не HTML
+      - name: Verify Databases
+        run: file data/*/*.db
 
 
 
