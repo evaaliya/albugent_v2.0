@@ -1,0 +1,1 @@
+-- The SQL cleansing script is not applicable due to the absence of datasets for remediation.
