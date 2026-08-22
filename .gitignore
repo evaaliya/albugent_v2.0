@@ -49,10 +49,4 @@ comands.md
 *sqlite3
 # Keep directory structure
 !data/**/.gitkeep
-data/**/*.db
-data/**/*.csv
 *.db
-*.db
-data/**/*.csv
-*.sqlite
-*.sqlite3

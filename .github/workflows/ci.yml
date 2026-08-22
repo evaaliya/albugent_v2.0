@@ -6,7 +6,7 @@ on:
     - cron: '0 6 * * *' # Каждый день в 06:00 UTC
   workflow_dispatch:     # Кнопка "Run workflow" в интерфейсе GitHub
 
-  # Добавляем права на запись в репозиторий и создание Pull Requests
+# Добавляем права на запись в репозиторий и создание Pull Requests
 permissions:
   contents: write
   pull-requests: write
@@ -21,15 +21,23 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # Step 2: Настраиваем Docker Buildx
+      # Step 2: Скачиваем базы данных из GitHub Releases
+      - name: Download Datasets from Releases
+        run: |
+          mkdir -p data
+          curl -L -o data/fiction-retail.db "https://github.com/evaaliya/albugent_v2.0/releases/download/v1.0.0/fiction-retail.db"
+          curl -L -o data/healthcare.db "https://github.com/evaaliya/albugent_v2.0/releases/download/v1.0.0/healthcare.db"
+          curl -L -o data/nyc_taxi.db "https://github.com/evaaliya/albugent_v2.0/releases/download/v1.0.0/nyc_taxi.db"
+
+      # Step 3: Настраиваем Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Step 3: Собираем Docker-контейнеры
+      # Step 4: Собираем Docker-контейнеры
       - name: Build Docker Services
         run: docker compose build
 
-      # Step 4: Запуск полного цикла (Download/Seed DBs + Agent Execution)
+      # Step 5: Запуск Агента на готовых базах из репозитория
       - name: Execute Albugent Autonomous Workflow
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -39,4 +47,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
-          docker compose run --rm strands-agent bash -c "mkdir -p data/fiction-retail && curl -L 'https://raw.githubusercontent.com/datahub-project/static-assets/main/datasets/fiction-retail/fiction-retail.db' -o data/fiction-retail/fiction-retail.db && python data/healthcare/create_db.py && python data/nyc-taxi/create_db.py && python agent/agent.py"
+          docker compose run --rm strands-agent python agent/agent.py
