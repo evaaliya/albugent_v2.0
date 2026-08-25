@@ -7,7 +7,9 @@ from typing import Any, Dict, List
 from mcp.server.fastmcp import FastMCP
 from github import Github, GithubException, Auth
 from mcp_server.utils.graph_engine import build_and_analyze_graph
-from mcp_server.utils.pii_detector import evaluate_dataset_risk, profile_table_anomalies
+from mcp_server.utils.pii_detector import detect_pii_columns
+from mcp_server.utils.anomaly_profiler import profile_table_anomalies
+from mcp_server.utils.risk_evaluator import evaluate_dataset_risk
 from mcp_server.utils.lineage_discoverer import discover_lineage_edges, get_downstream_nodes
 from mcp_server.utils.db_utils import get_table_fields, get_last_modified_timestamp
 from mcp_server.utils.remediation_generator import generate_remediation_sql
@@ -168,20 +170,7 @@ def inspect_dataset_schema(dataset_urn: str) -> Dict[str, Any]:
         except Exception as e:
             logger.error(f"Error reading schema for {meta['table']}: {e}")
 
-    pii_keywords = [
-        "name",
-        "ssn",
-        "passport",
-        "email",
-        "medical_condition",
-        "phone",
-        "card",
-        "patient",
-        "address",
-    ]
-    detected_pii = [
-        c for c in columns if any(k in c.lower() for k in pii_keywords)
-    ]
+    detected_pii = detect_pii_columns(columns)
 
     return {
         "urn": dataset_urn,
@@ -212,13 +201,13 @@ def score_dataset_risk(dataset_urn: str) -> Dict[str, Any]:
 
     db_path = meta.get("db_path", "")
     table_name = meta.get("table", "")
-    last_updated_ts = get_last_modified_timestamp(Path(db_path), table_name)
+    last_updated_ts = get_last_modified_timestamp(Path(db_path), table_name)#
 
     # Чистые вызовы из сфокусированных модулей в utils/
     fields = get_table_fields(db_path, table_name)
     centrality_map = calculate_pipeline_centrality()
     centrality = centrality_map.get(dataset_urn, 0.0)
-    last_updated_ts = get_last_modified_timestamp(db_path)
+    
 
     dynamic_edges = discover_lineage_edges(DATASET_REGISTRY)
     dst_nodes = {edge[1] for edge in dynamic_edges}
