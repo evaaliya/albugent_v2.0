@@ -27,14 +27,14 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p data/fiction-retail data/healthcare data/nyc-taxi
+
           curl -L -H "Authorization: token $GH_TOKEN" -o data/fiction-retail/fiction-retail.db "https://github.com/evaaliya/albugent_v2.0/releases/download/v1.0.0/fiction-retail.db"
           curl -L -H "Authorization: token $GH_TOKEN" -o data/healthcare/healthcare.db "https://github.com/evaaliya/albugent_v2.0/releases/download/v1.0.0/healthcare.db"
-          curl -L -H "Authorization: token $GH_TOKEN" -o data/nyc-taxi/nyc_taxi.db "https://github.com/evaaliya/albugent_v2.0/releases/download/v1.0.0/nyc_taxi_pipeline.db"
+          curl -L -H "Authorization: token $GH_TOKEN" -o data/nyc-taxi/nyc_taxi_pipeline.db "https://github.com/evaaliya/albugent_v2.0/releases/download/v1.0.0/nyc_taxi_pipeline.db"
+
       # Проверка: убеждаемся, что скачался SQLite файл, а не HTML
       - name: Verify Databases
         run: file data/*/*.db
-
-
 
       # Step 3: Сбрасываем права, чтобы Docker 100% увидел эти файлы
       - name: Fix permissions for Docker
