@@ -341,7 +341,7 @@ def auto_profile_dataset_anomalies(dataset_urn: str) -> Dict[str, Any]:
     table_name = meta.get("table", "")
 
     profile_data = profile_table_anomalies(db_path, table_name)
-    lineage_downstream = get_downstream_nodes(dataset_urn)
+    lineage_downstream = get_downstream_nodes(dataset_urn, DATASET_REGISTRY)
 
     return {
         "dataset_urn": dataset_urn,

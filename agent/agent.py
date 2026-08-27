@@ -17,11 +17,12 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.theme import Theme
 
-from mcp_server.mcp_server import DATASET_REGISTRY
+from mcp_server.mcp_server import scan_enterprise_datasets
 from context_builder.context_builder import collect_governance_context
 from mcp_server.utils.github_utils import create_remediation_pr
 from mcp_server.utils.remediation_generator import generate_remediation_sql
-
+from strands.tools.mcp import MCPClient
+from mcp import stdio_client, StdioServerParameters
 # Импортируем системный промпт
 from prompts.system_prompts import GOVERNANCE_SYSTEM_PROMPT
 
@@ -93,6 +94,24 @@ def summarize_anomalies_for_prompt(raw_context: dict) -> str:
 
     return "\n".join(report_lines) if report_lines else "No anomalies detected across registered datasets."
 
+mcp_tools_client = MCPClient(lambda: stdio_client(
+    StdioServerParameters(
+        command="python",
+        args=["-m", "mcp_server.mcp_server"],
+        cwd="/app"   # или откуда у тебя запускается agent.py внутри контейнера — проверь через WORKDIR в dockerfile
+    )
+))
+
+ALLOWED_INVESTIGATION_TOOLS = {
+    "list_available_datasets",
+    "inspect_dataset_schema",
+    "auto_profile_dataset_anomalies",
+    "score_dataset_risk",
+}
+
+def filter_tools(all_tools, allowed_names):
+    return [t for t in all_tools if t.tool_name in allowed_names]
+
 def main():
     console.print(Panel.fit(
         "[bold white]🤖 ALBUGENT 2.0: AUTONOMOUS DATA GOVERNANCE ENGINE[/bold white]\n"
@@ -102,7 +121,8 @@ def main():
 
     # 1. ДЕТЕРМИНИРОВАННЫЙ СБОР КОНТЕКСТА
     with console.status("[bold cyan]Gathering Deterministic Governance Context...", spinner="dots"):
-        raw_context = collect_governance_context(DATASET_REGISTRY)
+        dataset_registry = scan_enterprise_datasets()   # свежий скан вместо статического импорта
+        raw_context = collect_governance_context(dataset_registry)
     
     console.print("[info]✅ Governance Context fully aggregated.[/info]")
 
@@ -111,24 +131,28 @@ def main():
     console.print("\n[bold green]🛠️ Building Deterministic SQL Remediation Artifact...[/bold green]")
     sql_code = build_sql_remediation_artifact(raw_context)
 
-    # Б. Аналитический Markdown-отчет через LLM (Bedrock)
-    aggregated_summary = summarize_anomalies_for_prompt(raw_context)
+    # Б. Agentic-расследование + отчёт через LLM с доступом к investigation tools
+    with console.status("[bold cyan]Agent investigating datasets...", spinner="dots"):
+        with mcp_tools_client:
+            all_tools = mcp_tools_client.list_tools_sync()
+            limited_tools = filter_tools(all_tools, ALLOWED_INVESTIGATION_TOOLS)
 
-    agent = Agent(
-        model=bedrock_model,
-        system_prompt=GOVERNANCE_SYSTEM_PROMPT
-    )
+            agent = Agent(
+                model=bedrock_model,
+                system_prompt=GOVERNANCE_SYSTEM_PROMPT,
+                tools=limited_tools
+          )
 
-    pr_body_prompt = (
-        "Generate a concise, professional GitHub Pull Request summary in clean Markdown "
-        "based on this aggregated data audit summary. Include a structured Table of Quality Variances "
-        "showing exact counts per column and error type, and Pipeline Lineage Status. "
-        "Strictly output ONLY Markdown text. Do NOT include SQL code blocks in this description:\n\n"
-        f"{aggregated_summary}"
-    )
-
-    with console.status("[bold cyan]Generating PR Audit Summary via Bedrock...", spinner="dots"):
-        pr_body_raw = str(agent(pr_body_prompt)).strip()
+            pr_body_raw = str(agent(
+                "Investigate every registered dataset using your available tools: call "
+                "list_available_datasets first, then for each dataset call inspect_dataset_schema, "
+                "auto_profile_dataset_anomalies, and score_dataset_risk. "
+                "Do NOT write any report text between datasets — only call tools and silently "
+                "accumulate findings until every dataset has been investigated. "
+                "Only after you have investigated ALL datasets, compose exactly ONE final "
+                "consolidated governance PR report covering every dataset in a single Table of "
+                "Quality Variances, following your system instructions."
+            )).strip()
 
     pr_body = pr_body_raw
     if "```markdown" in pr_body:

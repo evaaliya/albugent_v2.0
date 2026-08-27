@@ -53,11 +53,10 @@ def discover_lineage_edges(dataset_registry: Dict[str, Any]) -> List[Tuple[str, 
                     
     return list(set(edges))
 
-def get_downstream_nodes(dataset_urn: str) -> List[str]:
+def get_downstream_nodes(dataset_urn: str, dataset_registry: Dict[str, Any]) -> List[str]:
     """Возвращает список всех URN, которые находятся ниже по истоку (downstream) от текущего URN."""
     # Получаем динамические связи [(src_urn, dst_urn), ...]
-    from mcp_server import DATASET_REGISTRY # или передаем registry
-    edges = discover_lineage_edges(DATASET_REGISTRY)
+    edges = discover_lineage_edges(dataset_registry)
     
     downstream = []
     for src, dst in edges:
