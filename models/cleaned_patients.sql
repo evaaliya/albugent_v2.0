@@ -9,7 +9,9 @@
 --   * Flagged PII columns for governance review: name, medical_condition
 -- =====================================================================
 
-CREATE OR REPLACE TABLE cleaned_raw_patients AS
+DROP TABLE IF EXISTS CLEANED cleaned_raw_patients
+
+CREATE TABLE cleaned_raw_patients AS
 SELECT 
     COALESCE(name, 'UNKNOWN') AS name,  -- [PII] Contains personally identifiable information
    CASE WHEN age < 0 OR age > 120 THEN NULL ELSE age END AS age,
@@ -40,7 +42,9 @@ FROM raw_patients;
 --   * Flagged PII columns for governance review: name, medical_condition
 -- =====================================================================
 
-CREATE OR REPLACE TABLE cleaned_staging_patients AS
+DROP TABLE IF EXISTS CLEANED cleaned_staging_patients
+
+CREATE TABLE cleaned_staging_patients AS
 SELECT 
     COALESCE(name, 'UNKNOWN') AS name,  -- [PII] Contains personally identifiable information
    CASE WHEN age < 0 OR age > 120 THEN NULL ELSE age END AS age,
@@ -77,7 +81,9 @@ FROM staging_patients;
 --   * Flagged PII columns for governance review: name
 -- =====================================================================
 
-CREATE OR REPLACE TABLE cleaned_mart_billing AS
+DROP TABLE IF EXISTS CLEANED cleaned_mart_billing
+
+CREATE TABLE cleaned_mart_billing AS
 SELECT 
     COALESCE(name, 'UNKNOWN') AS name,  -- [PII] Contains personally identifiable information
    hospital AS hospital,
@@ -101,7 +107,9 @@ FROM mart_billing;
 --   * Flagged PII columns for governance review: name, medical_condition
 -- =====================================================================
 
-CREATE OR REPLACE TABLE cleaned_mart_demographics AS
+DROP TABLE IF EXISTS CLEANED cleaned_mart_demographics
+
+CREATE TABLE cleaned_mart_demographics AS
 SELECT 
     COALESCE(name, 'UNKNOWN') AS name,  -- [PII] Contains personally identifiable information
    CASE WHEN age < 0 OR age > 120 THEN NULL ELSE age END AS age,
@@ -121,7 +129,9 @@ FROM mart_demographics;
 --   * Flagged PII columns for governance review: name, email, phone
 -- =====================================================================
 
-CREATE OR REPLACE TABLE cleaned_customers AS
+DROP TABLE IF EXISTS CLEANED cleaned_customers
+
+CREATE TABLE cleaned_customers AS
 SELECT 
     customer_id AS customer_id,
    name AS name,  -- [PII] Contains personally identifiable information
@@ -142,7 +152,9 @@ FROM customers;
 --   * No anomalies detected — table copied as-is.
 -- =====================================================================
 
-CREATE OR REPLACE TABLE cleaned_inventory AS
+DROP TABLE IF EXISTS CLEANED cleaned_inventory
+
+CREATE TABLE cleaned_inventory AS
 SELECT 
     inventory_id AS inventory_id,
    product_id AS product_id,
@@ -161,7 +173,9 @@ FROM inventory;
 --   * No anomalies detected — table copied as-is.
 -- =====================================================================
 
-CREATE OR REPLACE TABLE cleaned_order_items AS
+DROP TABLE IF EXISTS CLEANED cleaned_order_items
+
+CREATE TABLE cleaned_order_items AS
 SELECT 
     order_item_id AS order_item_id,
    order_id AS order_id,
@@ -179,7 +193,9 @@ FROM order_items;
 --   * No anomalies detected — table copied as-is.
 -- =====================================================================
 
-CREATE OR REPLACE TABLE cleaned_orders AS
+DROP TABLE IF EXISTS CLEANED cleaned_orders
+
+CREATE TABLE cleaned_orders AS
 SELECT 
     order_id AS order_id,
    customer_id AS customer_id,
@@ -199,7 +215,9 @@ FROM orders;
 --   * Flagged PII columns for governance review: name
 -- =====================================================================
 
-CREATE OR REPLACE TABLE cleaned_products AS
+DROP TABLE IF EXISTS CLEANED cleaned_products
+
+CREATE TABLE cleaned_products AS
 SELECT 
     product_id AS product_id,
    name AS name,  -- [PII] Contains personally identifiable information
@@ -218,7 +236,9 @@ FROM products;
 --   * No anomalies detected — table copied as-is.
 -- =====================================================================
 
-CREATE OR REPLACE TABLE cleaned_promotions AS
+DROP TABLE IF EXISTS CLEANED cleaned_promotions
+
+CREATE TABLE cleaned_promotions AS
 SELECT 
     promo_id AS promo_id,
    promo_code AS promo_code,
@@ -239,7 +259,9 @@ FROM promotions;
 --   * No anomalies detected — table copied as-is.
 -- =====================================================================
 
-CREATE OR REPLACE TABLE cleaned_returns AS
+DROP TABLE IF EXISTS CLEANED cleaned_returns
+
+CREATE TABLE cleaned_returns AS
 SELECT 
     return_id AS return_id,
    order_id AS order_id,
@@ -258,7 +280,9 @@ FROM returns;
 --   * Replaced NULLs with 0 in column 'delivered_date'
 -- =====================================================================
 
-CREATE OR REPLACE TABLE cleaned_shipments AS
+DROP TABLE IF EXISTS CLEANED cleaned_shipments
+
+CREATE TABLE cleaned_shipments AS
 SELECT 
     shipment_id AS shipment_id,
    order_id AS order_id,
@@ -278,7 +302,9 @@ FROM shipments;
 --   * Flagged PII columns for governance review: name
 -- =====================================================================
 
-CREATE OR REPLACE TABLE cleaned_suppliers AS
+DROP TABLE IF EXISTS CLEANED cleaned_suppliers
+
+CREATE TABLE cleaned_suppliers AS
 SELECT 
     supplier_id AS supplier_id,
    name AS name,  -- [PII] Contains personally identifiable information
@@ -295,7 +321,9 @@ FROM suppliers;
 --   * Flagged PII columns for governance review: name
 -- =====================================================================
 
-CREATE OR REPLACE TABLE cleaned_warehouses AS
+DROP TABLE IF EXISTS CLEANED cleaned_warehouses
+
+CREATE TABLE cleaned_warehouses AS
 SELECT 
     warehouse_id AS warehouse_id,
    name AS name,  -- [PII] Contains personally identifiable information
@@ -320,7 +348,9 @@ FROM warehouses;
 --   * Fixed negative values in numeric column 'total_amount'
 -- =====================================================================
 
-CREATE OR REPLACE TABLE cleaned_raw_trips AS
+DROP TABLE IF EXISTS CLEANED cleaned_raw_trips
+
+CREATE TABLE cleaned_raw_trips AS
 SELECT 
     VendorID AS VendorID,
    tpep_pickup_datetime AS tpep_pickup_datetime,
@@ -352,7 +382,9 @@ FROM raw_trips;
 --   * Corrected inverted date logic between 'tpep_dropoff_datetime' and 'trip_date'
 -- =====================================================================
 
-CREATE OR REPLACE TABLE cleaned_staging_trips AS
+DROP TABLE IF EXISTS CLEANED cleaned_staging_trips
+
+CREATE TABLE cleaned_staging_trips AS
 SELECT 
     VendorID AS VendorID,
    tpep_pickup_datetime AS tpep_pickup_datetime,
@@ -386,7 +418,9 @@ FROM staging_trips;
 --   * No anomalies detected — table copied as-is.
 -- =====================================================================
 
-CREATE OR REPLACE TABLE cleaned_mart_daily_summary AS
+DROP TABLE IF EXISTS CLEANED cleaned_mart_daily_summary
+
+CREATE TABLE cleaned_mart_daily_summary AS
 SELECT 
     trip_date AS trip_date,
    trip_count AS trip_count,
