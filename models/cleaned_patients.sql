@@ -9,7 +9,7 @@
 --   * Flagged PII columns for governance review: name, medical_condition
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_raw_patients
+DROP TABLE IF EXISTS cleaned_raw_patients;
 
 CREATE TABLE cleaned_raw_patients AS
 SELECT 
@@ -42,7 +42,7 @@ FROM raw_patients;
 --   * Flagged PII columns for governance review: name, medical_condition
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_staging_patients
+DROP TABLE IF EXISTS cleaned_staging_patients;
 
 CREATE TABLE cleaned_staging_patients AS
 SELECT 
@@ -81,7 +81,7 @@ FROM staging_patients;
 --   * Flagged PII columns for governance review: name
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_mart_billing
+DROP TABLE IF EXISTS cleaned_mart_billing;
 
 CREATE TABLE cleaned_mart_billing AS
 SELECT 
@@ -107,7 +107,7 @@ FROM mart_billing;
 --   * Flagged PII columns for governance review: name, medical_condition
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_mart_demographics
+DROP TABLE IF EXISTS cleaned_mart_demographics;
 
 CREATE TABLE cleaned_mart_demographics AS
 SELECT 
@@ -129,7 +129,7 @@ FROM mart_demographics;
 --   * Flagged PII columns for governance review: name, email, phone
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_customers
+DROP TABLE IF EXISTS cleaned_customers;
 
 CREATE TABLE cleaned_customers AS
 SELECT 
@@ -152,7 +152,7 @@ FROM customers;
 --   * No anomalies detected — table copied as-is.
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_inventory
+DROP TABLE IF EXISTS cleaned_inventory;
 
 CREATE TABLE cleaned_inventory AS
 SELECT 
@@ -173,7 +173,7 @@ FROM inventory;
 --   * No anomalies detected — table copied as-is.
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_order_items
+DROP TABLE IF EXISTS cleaned_order_items;
 
 CREATE TABLE cleaned_order_items AS
 SELECT 
@@ -193,7 +193,7 @@ FROM order_items;
 --   * No anomalies detected — table copied as-is.
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_orders
+DROP TABLE IF EXISTS cleaned_orders;
 
 CREATE TABLE cleaned_orders AS
 SELECT 
@@ -215,7 +215,7 @@ FROM orders;
 --   * Flagged PII columns for governance review: name
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_products
+DROP TABLE IF EXISTS cleaned_products;
 
 CREATE TABLE cleaned_products AS
 SELECT 
@@ -236,7 +236,7 @@ FROM products;
 --   * No anomalies detected — table copied as-is.
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_promotions
+DROP TABLE IF EXISTS cleaned_promotions;
 
 CREATE TABLE cleaned_promotions AS
 SELECT 
@@ -259,7 +259,7 @@ FROM promotions;
 --   * No anomalies detected — table copied as-is.
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_returns
+DROP TABLE IF EXISTS cleaned_returns;
 
 CREATE TABLE cleaned_returns AS
 SELECT 
@@ -280,7 +280,7 @@ FROM returns;
 --   * Replaced NULLs with 0 in column 'delivered_date'
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_shipments
+DROP TABLE IF EXISTS cleaned_shipments;
 
 CREATE TABLE cleaned_shipments AS
 SELECT 
@@ -302,7 +302,7 @@ FROM shipments;
 --   * Flagged PII columns for governance review: name
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_suppliers
+DROP TABLE IF EXISTS cleaned_suppliers;
 
 CREATE TABLE cleaned_suppliers AS
 SELECT 
@@ -321,7 +321,7 @@ FROM suppliers;
 --   * Flagged PII columns for governance review: name
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_warehouses
+DROP TABLE IF EXISTS cleaned_warehouses;
 
 CREATE TABLE cleaned_warehouses AS
 SELECT 
@@ -348,7 +348,7 @@ FROM warehouses;
 --   * Fixed negative values in numeric column 'total_amount'
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_raw_trips
+DROP TABLE IF EXISTS cleaned_raw_trips;
 
 CREATE TABLE cleaned_raw_trips AS
 SELECT 
@@ -382,7 +382,7 @@ FROM raw_trips;
 --   * Corrected inverted date logic between 'tpep_dropoff_datetime' and 'trip_date'
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_staging_trips
+DROP TABLE IF EXISTS cleaned_staging_trips;
 
 CREATE TABLE cleaned_staging_trips AS
 SELECT 
@@ -418,7 +418,7 @@ FROM staging_trips;
 --   * No anomalies detected — table copied as-is.
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_mart_daily_summary
+DROP TABLE IF EXISTS cleaned_mart_daily_summary;
 
 CREATE TABLE cleaned_mart_daily_summary AS
 SELECT 
