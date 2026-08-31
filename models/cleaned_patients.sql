@@ -6,18 +6,16 @@
 --   * Fixed negative values in numeric column 'billing_amount'
 --   * Replaced NULLs with 'UNKNOWN' in text column 'name'
 --   * Corrected inverted date logic between 'date_of_admission' and 'discharge_date'
---   * Flagged PII columns for governance review: name, medication
+--   * Flagged PII columns for governance review: name, medical_condition
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_raw_patients;
-
-CREATE TABLE cleaned_raw_patients AS
+CREATE OR REPLACE TABLE cleaned_raw_patients AS
 SELECT 
     COALESCE(name, 'UNKNOWN') AS name,  -- [PII] Contains personally identifiable information
    CASE WHEN age < 0 OR age > 120 THEN NULL ELSE age END AS age,
    gender AS gender,
    blood_type AS blood_type,
-   medical_condition AS medical_condition,
+   medical_condition AS medical_condition,  -- [PII] Contains personally identifiable information
    CASE WHEN date_of_admission > discharge_date THEN discharge_date ELSE date_of_admission END AS date_of_admission,
    doctor AS doctor,
    hospital AS hospital,
@@ -26,7 +24,7 @@ SELECT
    room_number AS room_number,
    admission_type AS admission_type,
    discharge_date AS discharge_date,
-   medication AS medication,  -- [PII] Contains personally identifiable information
+   medication AS medication,
    test_results AS test_results 
 FROM raw_patients;
 
@@ -39,18 +37,16 @@ FROM raw_patients;
 --   * Fixed negative values in numeric column 'billing_amount'
 --   * Replaced NULLs with 'UNKNOWN' in text column 'name'
 --   * Corrected inverted date logic between 'date_of_admission' and 'discharge_date'
---   * Flagged PII columns for governance review: name, medication
+--   * Flagged PII columns for governance review: name, medical_condition
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_staging_patients;
-
-CREATE TABLE cleaned_staging_patients AS
+CREATE OR REPLACE TABLE cleaned_staging_patients AS
 SELECT 
     COALESCE(name, 'UNKNOWN') AS name,  -- [PII] Contains personally identifiable information
    CASE WHEN age < 0 OR age > 120 THEN NULL ELSE age END AS age,
    gender AS gender,
    blood_type AS blood_type,
-   medical_condition AS medical_condition,
+   medical_condition AS medical_condition,  -- [PII] Contains personally identifiable information
    CASE WHEN date_of_admission > discharge_date THEN discharge_date ELSE date_of_admission END AS date_of_admission,
    doctor AS doctor,
    hospital AS hospital,
@@ -59,7 +55,7 @@ SELECT
    room_number AS room_number,
    admission_type AS admission_type,
    discharge_date AS discharge_date,
-   medication AS medication,  -- [PII] Contains personally identifiable information
+   medication AS medication,
    test_results AS test_results,
    gender_clean AS gender_clean,
    blood_type_clean AS blood_type_clean,
@@ -78,12 +74,10 @@ FROM staging_patients;
 --   * Fixed negative values in numeric column 'length_of_stay_days'
 --   * Replaced NULLs with 'UNKNOWN' in text column 'name'
 --   * Corrected inverted date logic between 'date_of_admission' and 'discharge_date'
---   * Flagged PII columns for governance review: name, medication
+--   * Flagged PII columns for governance review: name
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_mart_billing;
-
-CREATE TABLE cleaned_mart_billing AS
+CREATE OR REPLACE TABLE cleaned_mart_billing AS
 SELECT 
     COALESCE(name, 'UNKNOWN') AS name,  -- [PII] Contains personally identifiable information
    hospital AS hospital,
@@ -93,7 +87,7 @@ SELECT
    CASE WHEN date_of_admission > discharge_date THEN discharge_date ELSE date_of_admission END AS date_of_admission,
    discharge_date AS discharge_date,
    CASE WHEN length_of_stay_days < 0 THEN 0 ELSE length_of_stay_days END AS length_of_stay_days,
-   medication AS medication,  -- [PII] Contains personally identifiable information
+   medication AS medication,
    pipeline_status AS pipeline_status 
 FROM mart_billing;
 
@@ -104,18 +98,16 @@ FROM mart_billing;
 -- Generated Fixes:
 --   * Fixed invalid/negative age range in column 'age'
 --   * Replaced NULLs with 'UNKNOWN' in text column 'name'
---   * Flagged PII columns for governance review: name
+--   * Flagged PII columns for governance review: name, medical_condition
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_mart_demographics;
-
-CREATE TABLE cleaned_mart_demographics AS
+CREATE OR REPLACE TABLE cleaned_mart_demographics AS
 SELECT 
     COALESCE(name, 'UNKNOWN') AS name,  -- [PII] Contains personally identifiable information
    CASE WHEN age < 0 OR age > 120 THEN NULL ELSE age END AS age,
    gender AS gender,
    blood_type AS blood_type,
-   medical_condition AS medical_condition,
+   medical_condition AS medical_condition,  -- [PII] Contains personally identifiable information
    hospital AS hospital,
    test_results AS test_results,
    pipeline_status AS pipeline_status 
@@ -129,9 +121,7 @@ FROM mart_demographics;
 --   * Flagged PII columns for governance review: name, email, phone
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_customers;
-
-CREATE TABLE cleaned_customers AS
+CREATE OR REPLACE TABLE cleaned_customers AS
 SELECT 
     customer_id AS customer_id,
    name AS name,  -- [PII] Contains personally identifiable information
@@ -152,9 +142,7 @@ FROM customers;
 --   * No anomalies detected — table copied as-is.
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_inventory;
-
-CREATE TABLE cleaned_inventory AS
+CREATE OR REPLACE TABLE cleaned_inventory AS
 SELECT 
     inventory_id AS inventory_id,
    product_id AS product_id,
@@ -173,9 +161,7 @@ FROM inventory;
 --   * No anomalies detected — table copied as-is.
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_order_items;
-
-CREATE TABLE cleaned_order_items AS
+CREATE OR REPLACE TABLE cleaned_order_items AS
 SELECT 
     order_item_id AS order_item_id,
    order_id AS order_id,
@@ -193,9 +179,7 @@ FROM order_items;
 --   * No anomalies detected — table copied as-is.
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_orders;
-
-CREATE TABLE cleaned_orders AS
+CREATE OR REPLACE TABLE cleaned_orders AS
 SELECT 
     order_id AS order_id,
    customer_id AS customer_id,
@@ -215,9 +199,7 @@ FROM orders;
 --   * Flagged PII columns for governance review: name
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_products;
-
-CREATE TABLE cleaned_products AS
+CREATE OR REPLACE TABLE cleaned_products AS
 SELECT 
     product_id AS product_id,
    name AS name,  -- [PII] Contains personally identifiable information
@@ -236,9 +218,7 @@ FROM products;
 --   * No anomalies detected — table copied as-is.
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_promotions;
-
-CREATE TABLE cleaned_promotions AS
+CREATE OR REPLACE TABLE cleaned_promotions AS
 SELECT 
     promo_id AS promo_id,
    promo_code AS promo_code,
@@ -259,9 +239,7 @@ FROM promotions;
 --   * No anomalies detected — table copied as-is.
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_returns;
-
-CREATE TABLE cleaned_returns AS
+CREATE OR REPLACE TABLE cleaned_returns AS
 SELECT 
     return_id AS return_id,
    order_id AS order_id,
@@ -280,9 +258,7 @@ FROM returns;
 --   * Replaced NULLs with 0 in column 'delivered_date'
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_shipments;
-
-CREATE TABLE cleaned_shipments AS
+CREATE OR REPLACE TABLE cleaned_shipments AS
 SELECT 
     shipment_id AS shipment_id,
    order_id AS order_id,
@@ -302,9 +278,7 @@ FROM shipments;
 --   * Flagged PII columns for governance review: name
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_suppliers;
-
-CREATE TABLE cleaned_suppliers AS
+CREATE OR REPLACE TABLE cleaned_suppliers AS
 SELECT 
     supplier_id AS supplier_id,
    name AS name,  -- [PII] Contains personally identifiable information
@@ -321,9 +295,7 @@ FROM suppliers;
 --   * Flagged PII columns for governance review: name
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_warehouses;
-
-CREATE TABLE cleaned_warehouses AS
+CREATE OR REPLACE TABLE cleaned_warehouses AS
 SELECT 
     warehouse_id AS warehouse_id,
    name AS name,  -- [PII] Contains personally identifiable information
@@ -348,9 +320,7 @@ FROM warehouses;
 --   * Fixed negative values in numeric column 'total_amount'
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_raw_trips;
-
-CREATE TABLE cleaned_raw_trips AS
+CREATE OR REPLACE TABLE cleaned_raw_trips AS
 SELECT 
     VendorID AS VendorID,
    tpep_pickup_datetime AS tpep_pickup_datetime,
@@ -382,9 +352,7 @@ FROM raw_trips;
 --   * Corrected inverted date logic between 'tpep_dropoff_datetime' and 'trip_date'
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_staging_trips;
-
-CREATE TABLE cleaned_staging_trips AS
+CREATE OR REPLACE TABLE cleaned_staging_trips AS
 SELECT 
     VendorID AS VendorID,
    tpep_pickup_datetime AS tpep_pickup_datetime,
@@ -418,9 +386,7 @@ FROM staging_trips;
 --   * No anomalies detected — table copied as-is.
 -- =====================================================================
 
-DROP TABLE IF EXISTS cleaned_mart_daily_summary;
-
-CREATE TABLE cleaned_mart_daily_summary AS
+CREATE OR REPLACE TABLE cleaned_mart_daily_summary AS
 SELECT 
     trip_date AS trip_date,
    trip_count AS trip_count,
