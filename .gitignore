@@ -50,3 +50,5 @@ comands.md
 # Keep directory structure
 !data/**/.gitkeep
 *.db
+node_modules/
+node_modules/

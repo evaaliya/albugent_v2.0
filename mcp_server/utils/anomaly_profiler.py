@@ -1,15 +1,25 @@
+#anomaly_profiler.py
 import sqlite3
 import re
 import logging; logger = logging.getLogger(__name__)
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 
 COORDINATE_KEYWORDS = ["longitude", "latitude"]
 
+# Роли для парного сравнения дат. Колонка считается парой к другой ТОЛЬКО если
+# одна попадает в START, другая в END. Просто "похоже на дату" — недостаточно
+# (это и был баг: trip_date матчился с tpep_dropoff_datetime только потому,
+# что обе содержат "date"/"time", хотя trip_date — производная агрегатная дата,
+# не парный timestamp).
+START_KEYWORDS = ["admission", "start", "pickup", "shipped", "created", "signup", "opened"]
+END_KEYWORDS = ["discharge", "end", "dropoff", "delivered", "updated", "closed", "return"]
+
+
 def _is_date_like_column(col: str) -> bool:
+    """Общая проверка 'это вообще похоже на дату' — используется как первичный фильтр."""
     col_lower = col.lower()
 
-    # Явно НЕ дата, даже если содержит date-подобное слово (admission_type, date_type_id и т.п.)
     non_date_suffixes = ["_type", "_id", "_status", "_category", "_code", "_flag"]
     if any(col_lower.endswith(s) for s in non_date_suffixes):
         return False
@@ -20,6 +30,18 @@ def _is_date_like_column(col: str) -> bool:
 
     boundary_keywords = ["start", "end"]
     return any(re.search(rf"(^|_){k}($|_)", col_lower) for k in boundary_keywords)
+
+
+def _get_date_role(col: str) -> Optional[str]:
+    """Возвращает 'start', 'end' или None. None означает — колонка не участвует
+    в парном date-logic сравнении вообще (напр. агрегатные/производные даты
+    вроде trip_date, created_at без пары и т.п.)."""
+    col_lower = col.lower()
+    if any(k in col_lower for k in START_KEYWORDS):
+        return "start"
+    if any(k in col_lower for k in END_KEYWORDS):
+        return "end"
+    return None
 
 
 def profile_table_anomalies(db_path: Path | str, table_name: str) -> Dict[str, Any]:
@@ -46,8 +68,8 @@ def profile_table_anomalies(db_path: Path | str, table_name: str) -> Dict[str, A
 
         cursor.execute(f"PRAGMA table_info(\"{table_name}\");")
         columns_info = cursor.fetchall()
-        
-        cursor.execute(f"SELECT COUNT(*) FROM \"{table_name}\";") 
+
+        cursor.execute(f"SELECT COUNT(*) FROM \"{table_name}\";")
         total_rows = cursor.fetchone()[0]
         summary["total_rows"] = total_rows
 
@@ -62,43 +84,40 @@ def profile_table_anomalies(db_path: Path | str, table_name: str) -> Dict[str, A
         NULL_RATE_THRESHOLD = 20.0  # % — выше этого NULL считается legitimate-by-design, не аномалией
 
         for col in cols:
-                   cursor.execute(f"SELECT COUNT(*) FROM \"{table_name}\" WHERE \"{col}\" IS NULL OR CAST(\"{col}\" AS TEXT) = '' OR CAST(\"{col}\" AS TEXT) = 'NULL';")
-                   null_count = cursor.fetchone()[0]
-                   if null_count > 0:
-                       null_percentage = round((null_count / total_rows) * 100.0, 2)
-                       entry = {
-                           "column": col,
-                           "null_count": null_count,
-                           "null_percentage": null_percentage
-                     }
-                       if null_percentage > NULL_RATE_THRESHOLD:
-                           entry["likely_nullable_by_design"] = True
-                           summary.setdefault("high_null_rate_columns", []).append(entry)
-                       else:
-                           summary["null_anomalies"].append(entry)
+            cursor.execute(f"SELECT COUNT(*) FROM \"{table_name}\" WHERE \"{col}\" IS NULL OR CAST(\"{col}\" AS TEXT) = '' OR CAST(\"{col}\" AS TEXT) = 'NULL';")
+            null_count = cursor.fetchone()[0]
+            if null_count > 0:
+                null_percentage = round((null_count / total_rows) * 100.0, 2)
+                entry = {
+                    "column": col,
+                    "null_count": null_count,
+                    "null_percentage": null_percentage
+                }
+                if null_percentage > NULL_RATE_THRESHOLD:
+                    entry["likely_nullable_by_design"] = True
+                    summary.setdefault("high_null_rate_columns", []).append(entry)
+                else:
+                    summary["null_anomalies"].append(entry)
 
         # 2. Проверка числовых аномалий (Отрицательные значения и Невалидный возраст)
         for col in cols:
-            #coordinates (longitude/latitude)
             if any(k in col.lower() for k in COORDINATE_KEYWORDS):
-                pass #passing negaive-check for this section
+                pass
             else:
-            # Проверяем на отрицательные числа (например, billing_amount < 0)
                 try:
                     cursor.execute(f"SELECT COUNT(*), MIN(CAST(\"{col}\" AS REAL)) FROM \"{table_name}\" WHERE CAST(\"{col}\" AS REAL) < 0;")
                     row = cursor.fetchone()
                     neg_count = row[0]
                     if neg_count > 0 and row[1] is not None:
                         summary["numeric_anomalies"].append({
-                        "column": col,
-                        "negative_count": neg_count,
-                        "negative_percentage": round((neg_count / total_rows) * 100.0, 2),
-                        "min_value": row[1]
-                    })
+                            "column": col,
+                            "negative_count": neg_count,
+                            "negative_percentage": round((neg_count / total_rows) * 100.0, 2),
+                            "min_value": row[1]
+                        })
                 except Exception as e:
                     logger.warning(f"Anomaly check failed on column '{col}': {e}")
 
-            # Специальная проверка для возраста (age < 0 или age > 120)
             if "age" in col.lower():
                 try:
                     cursor.execute(f"SELECT COUNT(*) FROM \"{table_name}\" WHERE CAST(\"{col}\" AS REAL) < 0 OR CAST(\"{col}\" AS REAL) > 120;")
@@ -113,29 +132,31 @@ def profile_table_anomalies(db_path: Path | str, table_name: str) -> Dict[str, A
                 except Exception as e:
                     logger.warning(f"Anomaly check failed on column '{col}': {e}")
 
-        # 3. Проверка инверсии дат (admission > discharge, start > end)
+        # 3. Проверка инверсии дат — только между явными парами start/end,
+        # не между любыми двумя date-like колонками (см. START_KEYWORDS/END_KEYWORDS выше)
         date_cols = [c for c in cols if _is_date_like_column(c)]
-        if len(date_cols) >= 2:
-            for i in range(len(date_cols)):
-                for j in range(i + 1, len(date_cols)):
-                    c1, c2 = date_cols[i], date_cols[j]
-                    try:
-                        cursor.execute(
-    f"SELECT COUNT(*) FROM \"{table_name}\" "
-    f"WHERE DATE(\"{c1}\") > DATE(\"{c2}\") "
-    f"AND \"{c1}\" IS NOT NULL AND \"{c2}\" IS NOT NULL "
-    f"AND \"{c1}\" != '' AND \"{c2}\" != '';"
-)
-                        swapped_count = cursor.fetchone()[0]
-                        if swapped_count > 0:
-                            summary["date_logic_anomalies"].append({
-                                "col_1": c1,
-                               "col_2": c2,
-                                "inverted_rows_count": swapped_count,
-                                "percentage": round((swapped_count / total_rows) * 100.0, 2)
-                            })
-                    except Exception as e:
-                        logger.warning(f"Anomaly check failed between columns '{c1}' and '{c2}': {e}")
+        start_cols = [c for c in date_cols if _get_date_role(c) == "start"]
+        end_cols = [c for c in date_cols if _get_date_role(c) == "end"]
+
+        for c1 in start_cols:
+            for c2 in end_cols:
+                try:
+                    cursor.execute(
+                        f"SELECT COUNT(*) FROM \"{table_name}\" "
+                        f"WHERE DATE(\"{c1}\") > DATE(\"{c2}\") "
+                        f"AND \"{c1}\" IS NOT NULL AND \"{c2}\" IS NOT NULL "
+                        f"AND \"{c1}\" != '' AND \"{c2}\" != '';"
+                    )
+                    swapped_count = cursor.fetchone()[0]
+                    if swapped_count > 0:
+                        summary["date_logic_anomalies"].append({
+                            "col_1": c1,
+                            "col_2": c2,
+                            "inverted_rows_count": swapped_count,
+                            "percentage": round((swapped_count / total_rows) * 100.0, 2)
+                        })
+                except Exception as e:
+                    logger.warning(f"Anomaly check failed between columns '{c1}' and '{c2}': {e}")
 
         conn.close()
     except Exception as e:

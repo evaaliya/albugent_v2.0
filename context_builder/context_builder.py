@@ -10,6 +10,7 @@ from mcp_server.utils.pii_detector import detect_pii_columns
 from mcp_server.utils.anomaly_profiler import profile_table_anomalies
 from mcp_server.utils.risk_evaluator import evaluate_dataset_risk
 from mcp_server.utils.db_utils import get_table_fields, get_last_modified_timestamp
+from mcp_server.utils.circuit_breaker import compute_circuit_breaker_status
 
 def collect_governance_context(dataset_registry: Dict[str, Any]) -> Dict[str, Any]:
     edges = discover_lineage_edges(dataset_registry)
@@ -53,5 +54,11 @@ def collect_governance_context(dataset_registry: Dict[str, Any]) -> Dict[str, An
             "downstream_nodes": downstream,
             "statistical_profile": profile
         })
+
+        profiles_by_urn = {ds["urn"]: ds["statistical_profile"] for ds in datasets_payload}
+        circuit_status = compute_circuit_breaker_status(dataset_registry, profiles_by_urn, edges)
+
+        for ds in datasets_payload:
+            ds["circuit_breaker_status"] = circuit_status.get(ds["urn"], "OK")
 
     return {"lineage_edges": edges, "datasets": datasets_payload}

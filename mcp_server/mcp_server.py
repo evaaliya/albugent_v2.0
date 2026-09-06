@@ -349,6 +349,99 @@ def auto_profile_dataset_anomalies(dataset_urn: str) -> Dict[str, Any]:
         "downstream_impact_nodes": lineage_downstream
     }
 
+@mcp.tool()
+def get_circuit_breaker_status(dataset_urn: str) -> Dict[str, Any]:
+    """Returns the deterministic circuit breaker status (HALTED/MONITOR/OK) for a dataset,
+    plus the specific anomaly that triggered it, so the agent can explain the reasoning."""
+    from context_builder.context_builder import collect_governance_context
+
+    ctx = collect_governance_context(DATASET_REGISTRY)
+    for ds in ctx["datasets"]:
+        if ds["urn"] == dataset_urn:
+            return {
+                "dataset_urn": dataset_urn,
+                "circuit_breaker_status": ds.get("circuit_breaker_status", "OK"),
+                "statistical_profile": ds.get("statistical_profile", {}),
+            }
+    return {"error": f"Dataset '{dataset_urn}' not found"}
+#------------------------------added another 2 new tools--------------------------------
+@mcp.tool()
+def check_row_impact(dataset_urn: str, row_filter_column: str, row_filter_value: str) -> Dict[str, Any]:
+    """
+    Checks how many downstream rows are affected by a specific value in a specific
+    column of the source dataset. Generic across all domains — uses existing lineage
+    discovery and schema intersection, no hardcoded table/column names.
+    """
+    meta = DATASET_REGISTRY.get(dataset_urn)
+    if not meta:
+        return {"error": f"URN '{dataset_urn}' not found"}
+
+    downstream_urns = get_downstream_nodes(dataset_urn, DATASET_REGISTRY)
+    src_cols = set(get_table_fields(meta["db_path"], meta["table"]))
+    is_pii_join = row_filter_column in detect_pii_columns([row_filter_column])
+
+    impact = []
+    for dst_urn in downstream_urns:
+        dst_meta = DATASET_REGISTRY.get(dst_urn)
+        dst_cols = set(get_table_fields(dst_meta["db_path"], dst_meta["table"]))
+
+        shared_cols = src_cols & dst_cols
+        if row_filter_column not in shared_cols:
+            continue
+
+        try:
+            conn = sqlite3.connect(dst_meta["db_path"])
+            cursor = conn.cursor()
+            cursor.execute(
+                f'SELECT COUNT(*) FROM "{dst_meta["table"]}" WHERE "{row_filter_column}" = ?;',
+                (row_filter_value,)
+            )
+            count = cursor.fetchone()[0]
+            conn.close()
+        except Exception as e:
+            logger.error(f"check_row_impact query failed on {dst_urn}: {e}")
+            continue
+
+        if count > 0:
+            impact.append({
+                "downstream_urn": dst_urn,
+                "affected_rows": count,
+                "join_confidence": "pii_name_match" if is_pii_join else "exact_key_match"
+            })
+
+    return {
+        "source_urn": dataset_urn,
+        "filter_column": row_filter_column,
+        "downstream_impact": impact
+    }
+
+@mcp.tool()
+def get_remediation_patches(dataset_urn: str) -> Dict[str, Any]:
+    """Returns individual, separately-applicable remediation patches for a dataset."""
+    from mcp_server.utils.remediation_generator import generate_remediation_patches
+
+    meta = DATASET_REGISTRY.get(dataset_urn)
+    if not meta:
+        return {"error": f"URN '{dataset_urn}' not found"}
+
+    profile_data = profile_table_anomalies(meta["db_path"], meta["table"])
+    columns = get_table_fields(meta["db_path"], meta["table"])
+    pii_cols = detect_pii_columns(columns)
+
+    patches = generate_remediation_patches(dataset_urn, meta["table"], profile_data, pii_cols)
+    return {
+        "dataset_urn": dataset_urn,
+        "patches": [
+            {
+                "patch_id": p.patch_id,
+                "patch_type": p.patch_type,
+                "target_column": p.target_column,
+                "description": p.description,
+                "column_expr": p.column_expr,
+            }
+            for p in patches
+        ]
+    }
 
 if __name__ == "__main__":
     mcp.run(transport="stdio")
