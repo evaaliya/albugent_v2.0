@@ -1,5 +1,5 @@
 // src/App.tsx
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 // ============================================================
@@ -128,8 +128,8 @@ function LineageMap({ graph }: { graph: LineageGraph }) {
             key={d}
             onClick={() => setActiveDomain(d)}
             className={`text-[10px] px-2.5 py-1 rounded transition-colors ${activeDomain === d
-                ? 'bg-violet-950 text-violet-300 border border-violet-700'
-                : 'bg-gray-900 text-gray-500 border border-gray-800 hover:text-gray-300'
+              ? 'bg-violet-950 text-violet-300 border border-violet-700'
+              : 'bg-gray-900 text-gray-500 border border-gray-800 hover:text-gray-300'
               }`}
           >
             {d}
@@ -253,10 +253,10 @@ function CombinedMetricsChart({ history }: { history: Record<MetricKey, MetricPo
         <YAxis hide domain={['auto', 'auto']} />
         <Tooltip
           contentStyle={{ background: '#0a0a0f', border: '1px solid #27272a', fontSize: 11 }}
-          formatter={(_value: any, name: string, props: any) => {
-            const key = name.replace('_real', '') as MetricKey;
+          formatter={((_value: any, name: any, props: any) => {
+            const key = String(name).replace('_real', '') as MetricKey;
             return [props.payload[`${key}_real`], METRIC_CONFIG[key]?.label ?? name];
-          }}
+          }) as any}
         />
         {(Object.keys(METRIC_CONFIG) as MetricKey[]).map((key) => (
           <Line
@@ -293,7 +293,7 @@ export default function App() {
   const [history, setHistory] = useState<Record<MetricKey, MetricPoint[]>>({
     pii: [], quality: [], violations: [], proposals: [],
   });
-  const [selectedMetric, setSelectedMetric] = useState<MetricKey>('quality');
+
   //-----------------------
   const loadData = async () => {
     setLoading(true);

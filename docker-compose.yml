@@ -6,10 +6,9 @@ services:
     image: albugent/agent:1.0
     container_name: albugent-strands-agent
     volumes:
-      # Смонтировать ВЕСЬ корень проекта в контейнер:
       - .:/app
-    stdin_open: true # Интерактивный ввод
-    tty: true        # Включает псевдотерминал для Rich UI
+    stdin_open: true
+    tty: true
     environment:
       - PYTHONPATH=/app
       - PYTHONUNBUFFERED=1
@@ -19,3 +18,34 @@ services:
       - GITHUB_TOKEN=${GITHUB_TOKEN}
       - GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
       - AWS_BEDROCK_MODEL_ID=${AWS_BEDROCK_MODEL_ID:-amazon.nova-pro-v1:0}
+
+  web-api:
+    build:
+      context: .
+      dockerfile: web_api/Dockerfile
+    image: albugent/web-api:1.0
+    container_name: albugent-web-api
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
+      - AWS_BEDROCK_MODEL_ID=${AWS_BEDROCK_MODEL_ID:-amazon.nova-pro-v1:0}
+
+  web-ui:
+    build:
+      context: ./web-ui
+      dockerfile: Dockerfile
+    image: albugent/web-ui:1.0
+    container_name: albugent-web-ui
+    ports:
+      - "5173:5173"
+    depends_on:
+      - web-api
