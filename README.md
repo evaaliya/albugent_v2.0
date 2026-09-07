@@ -164,7 +164,7 @@ albugent_v2.0/
 
 ### Prerequisites
 
-- Python 3.11+, Node.js 18+
+- Docker and Docker Compose
 - An AWS account with Bedrock model access (Nova Pro or your chosen model)
 - A GitHub Personal Access Token with `repo` scope (for PR creation)
 
@@ -181,25 +181,42 @@ GH_TOKEN=your_github_personal_access_token
 GITHUB_REPOSITORY=your-username/your-repo
 ```
 
-### 1. Backend (FastAPI + MCP server)
+### Run the full stack
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
-python -m pip install --upgrade pip
-pip install -r agent/requirements.txt
-pip install fastapi uvicorn
-
-uvicorn web_api.main:app --port 8000
+docker compose up --build web-api web-ui
 ```
 
-This starts the dashboard API on `http://localhost:8000` and scans all datasets under `data/` on startup.
+This starts:
+- **FastAPI backend** on `http://localhost:8000` — scans all datasets under `data/`
+- **React dashboard** on `http://localhost:5173` — the governance UI
 
-### 2. Frontend (React dashboard)
+Open `http://localhost:5173` in your browser.
 
-In a separate terminal:
+### Run the CLI agent (optional — full agentic PR flow)
+
+Runs independently, as an interactive one-off container:
 
 ```bash
+docker compose run --build --rm strands-agent
+```
+
+This scans all datasets, generates the deterministic SQL artifact, runs the Strands agent's investigation, and opens (or updates) a Draft PR. The same flow is also triggerable from the dashboard via the **Generate PR** button.
+
+### Manual setup (without Docker)
+
+If you prefer running without Docker:
+
+```bash
+# Backend
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r agent/requirements.txt
+pip install -r web_api/requirements.txt
+python -m uvicorn web_api.main:app --port 8000
+
+# Frontend (separate terminal)
 cd web-ui
 npm install
 npm run dev
