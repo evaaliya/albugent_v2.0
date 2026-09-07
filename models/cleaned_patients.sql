@@ -2,6 +2,10 @@
 -- Albugent Autonomous Data Governance: Automated Remediation Script
 -- Target Table: raw_patients
 -- Generated Fixes:
+--   * Fixed invalid/negative age range in column 'age'
+--   * Fixed negative values in numeric column 'billing_amount'
+--   * Replaced NULLs with 'UNKNOWN' in text column 'name'
+--   * Corrected inverted date logic between 'date_of_admission' and 'discharge_date'
 --   * Flagged PII columns for governance review: name, medical_condition, medication
 -- =====================================================================
 
@@ -9,16 +13,16 @@ DROP TABLE IF EXISTS cleaned_raw_patients;
 
 CREATE TABLE cleaned_raw_patients AS
 SELECT 
-    name AS name,  -- [PII] Contains personally identifiable information
-   age AS age,
+    COALESCE(name, 'UNKNOWN') AS name,  -- [PII] Contains personally identifiable information
+   CASE WHEN age < 0 OR age > 120 THEN NULL ELSE age END AS age,
    gender AS gender,
    blood_type AS blood_type,
    medical_condition AS medical_condition,  -- [PII] Contains personally identifiable information
-   date_of_admission AS date_of_admission,
+   CASE WHEN date_of_admission > discharge_date THEN discharge_date ELSE date_of_admission END AS date_of_admission,
    doctor AS doctor,
    hospital AS hospital,
    insurance_provider AS insurance_provider,
-   billing_amount AS billing_amount,
+   CASE WHEN billing_amount < 0 THEN 0 ELSE billing_amount END AS billing_amount,
    room_number AS room_number,
    admission_type AS admission_type,
    discharge_date AS discharge_date,
@@ -31,6 +35,10 @@ FROM raw_patients;
 -- Albugent Autonomous Data Governance: Automated Remediation Script
 -- Target Table: staging_patients
 -- Generated Fixes:
+--   * Fixed invalid/negative age range in column 'age'
+--   * Fixed negative values in numeric column 'billing_amount'
+--   * Replaced NULLs with 'UNKNOWN' in text column 'name'
+--   * Corrected inverted date logic between 'date_of_admission' and 'discharge_date'
 --   * Flagged PII columns for governance review: name, medical_condition, medication
 -- =====================================================================
 
@@ -38,16 +46,16 @@ DROP TABLE IF EXISTS cleaned_staging_patients;
 
 CREATE TABLE cleaned_staging_patients AS
 SELECT 
-    name AS name,  -- [PII] Contains personally identifiable information
-   age AS age,
+    COALESCE(name, 'UNKNOWN') AS name,  -- [PII] Contains personally identifiable information
+   CASE WHEN age < 0 OR age > 120 THEN NULL ELSE age END AS age,
    gender AS gender,
    blood_type AS blood_type,
    medical_condition AS medical_condition,  -- [PII] Contains personally identifiable information
-   date_of_admission AS date_of_admission,
+   CASE WHEN date_of_admission > discharge_date THEN discharge_date ELSE date_of_admission END AS date_of_admission,
    doctor AS doctor,
    hospital AS hospital,
    insurance_provider AS insurance_provider,
-   billing_amount AS billing_amount,
+   CASE WHEN billing_amount < 0 THEN 0 ELSE billing_amount END AS billing_amount,
    room_number AS room_number,
    admission_type AS admission_type,
    discharge_date AS discharge_date,
@@ -66,6 +74,10 @@ FROM staging_patients;
 -- Albugent Autonomous Data Governance: Automated Remediation Script
 -- Target Table: mart_billing
 -- Generated Fixes:
+--   * Fixed negative values in numeric column 'billing_amount'
+--   * Fixed negative values in numeric column 'length_of_stay_days'
+--   * Replaced NULLs with 'UNKNOWN' in text column 'name'
+--   * Corrected inverted date logic between 'date_of_admission' and 'discharge_date'
 --   * Flagged PII columns for governance review: name, medication
 -- =====================================================================
 
@@ -73,14 +85,14 @@ DROP TABLE IF EXISTS cleaned_mart_billing;
 
 CREATE TABLE cleaned_mart_billing AS
 SELECT 
-    name AS name,  -- [PII] Contains personally identifiable information
+    COALESCE(name, 'UNKNOWN') AS name,  -- [PII] Contains personally identifiable information
    hospital AS hospital,
    insurance_provider AS insurance_provider,
    admission_type AS admission_type,
-   billing_amount AS billing_amount,
-   date_of_admission AS date_of_admission,
+   CASE WHEN billing_amount < 0 THEN 0 ELSE billing_amount END AS billing_amount,
+   CASE WHEN date_of_admission > discharge_date THEN discharge_date ELSE date_of_admission END AS date_of_admission,
    discharge_date AS discharge_date,
-   length_of_stay_days AS length_of_stay_days,
+   CASE WHEN length_of_stay_days < 0 THEN 0 ELSE length_of_stay_days END AS length_of_stay_days,
    medication AS medication,  -- [PII] Contains personally identifiable information
    pipeline_status AS pipeline_status 
 FROM mart_billing;
@@ -90,6 +102,8 @@ FROM mart_billing;
 -- Albugent Autonomous Data Governance: Automated Remediation Script
 -- Target Table: mart_demographics
 -- Generated Fixes:
+--   * Fixed invalid/negative age range in column 'age'
+--   * Replaced NULLs with 'UNKNOWN' in text column 'name'
 --   * Flagged PII columns for governance review: name, medical_condition
 -- =====================================================================
 
@@ -97,8 +111,8 @@ DROP TABLE IF EXISTS cleaned_mart_demographics;
 
 CREATE TABLE cleaned_mart_demographics AS
 SELECT 
-    name AS name,  -- [PII] Contains personally identifiable information
-   age AS age,
+    COALESCE(name, 'UNKNOWN') AS name,  -- [PII] Contains personally identifiable information
+   CASE WHEN age < 0 OR age > 120 THEN NULL ELSE age END AS age,
    gender AS gender,
    blood_type AS blood_type,
    medical_condition AS medical_condition,  -- [PII] Contains personally identifiable information
@@ -263,7 +277,7 @@ FROM returns;
 -- Albugent Autonomous Data Governance: Automated Remediation Script
 -- Target Table: shipments
 -- Generated Fixes:
---   * No anomalies detected — table copied as-is.
+--   * Replaced NULLs with 0 in column 'delivered_date'
 -- =====================================================================
 
 DROP TABLE IF EXISTS cleaned_shipments;
@@ -276,7 +290,7 @@ SELECT
    carrier AS carrier,
    tracking_number AS tracking_number,
    shipped_date AS shipped_date,
-   delivered_date AS delivered_date,
+   COALESCE(delivered_date, 0) AS delivered_date,
    shipment_state AS shipment_state 
 FROM shipments;
 
@@ -325,7 +339,13 @@ FROM warehouses;
 -- Albugent Autonomous Data Governance: Automated Remediation Script
 -- Target Table: raw_trips
 -- Generated Fixes:
---   * No anomalies detected — table copied as-is.
+--   * Fixed negative values in numeric column 'fare_amount'
+--   * Fixed negative values in numeric column 'extra'
+--   * Fixed negative values in numeric column 'mta_tax'
+--   * Fixed negative values in numeric column 'tip_amount'
+--   * Fixed negative values in numeric column 'tolls_amount'
+--   * Fixed negative values in numeric column 'improvement_surcharge'
+--   * Fixed negative values in numeric column 'total_amount'
 -- =====================================================================
 
 DROP TABLE IF EXISTS cleaned_raw_trips;
@@ -344,13 +364,13 @@ SELECT
    dropoff_longitude AS dropoff_longitude,
    dropoff_latitude AS dropoff_latitude,
    payment_type AS payment_type,
-   fare_amount AS fare_amount,
-   extra AS extra,
-   mta_tax AS mta_tax,
-   tip_amount AS tip_amount,
-   tolls_amount AS tolls_amount,
-   improvement_surcharge AS improvement_surcharge,
-   total_amount AS total_amount 
+   CASE WHEN fare_amount < 0 THEN 0 ELSE fare_amount END AS fare_amount,
+   CASE WHEN extra < 0 THEN 0 ELSE extra END AS extra,
+   CASE WHEN mta_tax < 0 THEN 0 ELSE mta_tax END AS mta_tax,
+   CASE WHEN tip_amount < 0 THEN 0 ELSE tip_amount END AS tip_amount,
+   CASE WHEN tolls_amount < 0 THEN 0 ELSE tolls_amount END AS tolls_amount,
+   CASE WHEN improvement_surcharge < 0 THEN 0 ELSE improvement_surcharge END AS improvement_surcharge,
+   CASE WHEN total_amount < 0 THEN 0 ELSE total_amount END AS total_amount 
 FROM raw_trips;
 
 
@@ -358,7 +378,7 @@ FROM raw_trips;
 -- Albugent Autonomous Data Governance: Automated Remediation Script
 -- Target Table: staging_trips
 -- Generated Fixes:
---   * No anomalies detected — table copied as-is.
+--   * Fixed negative values in numeric column 'trip_duration_min'
 -- =====================================================================
 
 DROP TABLE IF EXISTS cleaned_staging_trips;
@@ -385,7 +405,7 @@ SELECT
    improvement_surcharge AS improvement_surcharge,
    total_amount AS total_amount,
    trip_date AS trip_date,
-   trip_duration_min AS trip_duration_min,
+   CASE WHEN trip_duration_min < 0 THEN 0 ELSE trip_duration_min END AS trip_duration_min,
    pipeline_status AS pipeline_status 
 FROM staging_trips;
 
