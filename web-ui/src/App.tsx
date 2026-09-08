@@ -60,7 +60,17 @@ interface LineageGraph {
   nodes: LineageNode[];
   edges: LineageEdge[];
 }
-
+//-----
+interface ActivityEvent {
+  timestamp: string;
+  action: string;
+  patch_id: string;
+  dataset_urn: string | null;
+  patch_type: string | null;
+  target_column: string | null;
+  rows_updated: number;
+}
+//----
 interface MetricPoint {
   t: number;
   v: number;
@@ -279,6 +289,28 @@ function CombinedMetricsChart({ history }: { history: Record<MetricKey, MetricPo
 // ============================================================
 // SECTION: Main App
 // ============================================================
+function ActivityLogView({ events }: { events: ActivityEvent[] }) {
+  if (events.length === 0) {
+    return <div className="text-xs text-gray-600 text-center py-12">No activity yet.</div>;
+  }
+  return (
+    <div className="space-y-2">
+      {events.map((e, i) => (
+        <div key={i} className="flex items-center justify-between p-3 bg-black border border-gray-800 rounded text-xs">
+          <div>
+            <span className={e.action === 'approve' ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>
+              {e.action.toUpperCase()}
+            </span>
+            <span className="text-gray-400 ml-2">{e.patch_id}</span>
+            {e.target_column && <span className="text-gray-600 ml-2">→ {e.target_column}</span>}
+          </div>
+          <span className="text-gray-600">{new Date(e.timestamp).toLocaleString()}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function App() {
   const [activeNav, setActiveNav] = useState('Overview');
   const [kpi, setKpi] = useState<KPISummary | null>(null);
@@ -289,26 +321,30 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [applyingId, setApplyingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  //-----------------------
+  const [generatingPR, setGeneratingPR] = useState(false);
+  const [prResult, setPrResult] = useState<{ status: string; pr_url?: string; message?: string } | null>(null);
+  const [activityLog, setActivityLog] = useState<ActivityEvent[]>([]); //new one 
   const [history, setHistory] = useState<Record<MetricKey, MetricPoint[]>>({
     pii: [], quality: [], violations: [], proposals: [],
   });
 
-  //-----------------------
+
   const loadData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const [kpiRes, proposalsRes, piiRes, qualityRes, lineageRes] = await Promise.all([
+      const [kpiRes, proposalsRes, piiRes, qualityRes, lineageRes, activityRes] = await Promise.all([
         fetch(`${API_BASE}/api/kpi-summary`),
         fetch(`${API_BASE}/api/proposals`),
         fetch(`${API_BASE}/api/pii-distribution`),
         fetch(`${API_BASE}/api/quality-insights`),
         fetch(`${API_BASE}/api/lineage-graph`),
+        fetch(`${API_BASE}/api/activity-log`),
       ]);
       if (!kpiRes.ok || !proposalsRes.ok || !piiRes.ok || !qualityRes.ok || !lineageRes.ok) {
         throw new Error('Backend request failed');
       }
+      const activityData = await activityRes.json();
       setKpi(await kpiRes.json());
       setProposals(await proposalsRes.json());
       setPiiDist(await piiRes.json());
@@ -375,6 +411,20 @@ export default function App() {
     }
   };
 
+  const handleGeneratePR = async () => {
+    setGeneratingPR(true);
+    setPrResult(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/generate-pr`, { method: 'POST' });
+      const result = await res.json();
+      setPrResult(result);
+    } catch (err: any) {
+      setPrResult({ status: 'error', message: err.message || 'Request failed' });
+    } finally {
+      setGeneratingPR(false);
+    }
+  };
+
   return (
     <div className="h-screen bg-[#060608] text-gray-200 font-mono flex overflow-hidden">
       <Sidebar active={activeNav} onSelect={setActiveNav} />
@@ -386,162 +436,207 @@ export default function App() {
             <h1 className="text-lg font-bold text-white">Governance Overview</h1>
             <div className="text-xs text-gray-500">Deterministic. Transparent. Trusted.</div>
           </div>
-          <button
-            onClick={loadData}
-            className="text-xs bg-gray-900 hover:bg-gray-800 border border-gray-700 text-gray-300 px-3 py-1.5 rounded transition-colors"
-          >
-            Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleGeneratePR}
+              disabled={generatingPR}
+              className="text-xs bg-violet-950 hover:bg-violet-900 disabled:opacity-50 border border-violet-700 text-violet-300 px-3 py-1.5 rounded font-bold transition-colors"
+            >
+              {generatingPR ? 'Generating PR...' : 'Generate PR'}
+            </button>
+            <button
+              onClick={loadData}
+              className="text-xs bg-gray-900 hover:bg-gray-800 border border-gray-700 text-gray-300 px-3 py-1.5 rounded transition-colors"
+            >
+              Refresh
+            </button>
+          </div>
         </header>
+        {prResult && (
+          <div
+            className={`px-6 py-2 text-xs border-b shrink-0 ${prResult.status === 'success'
+              ? 'bg-emerald-950/30 border-emerald-900 text-emerald-300'
+              : 'bg-red-950/30 border-red-900 text-red-300'
+              }`}
+          >
+            {prResult.status === 'success' ? (
+              <>
+                ✅ PR created:{' '}
+                <a href={prResult.pr_url} target="_blank" rel="noopener noreferrer" className="underline font-bold">
+                  {prResult.pr_url}
+                </a>
+              </>
+            ) : (
+              <>❌ Failed to generate PR: {prResult.message}</>
+            )}
+          </div>
+        )}
 
         <main className="flex-1 p-6 flex flex-col gap-6 overflow-y-auto">
-          {error && (
-            <div className="bg-red-950/40 border border-red-900 text-red-300 text-sm p-3 rounded shrink-0">
-              {error} — is uvicorn running on :8000?
+          {activeNav === 'Overview' && (
+            <>
+              {error && (
+                <div className="bg-red-950/40 border border-red-900 text-red-300 text-sm p-3 rounded shrink-0">
+                  {error} — is uvicorn running on :8000?
+                </div>
+              )}
+
+              {/* KPI Banner */}
+              <div className="grid grid-cols-4 gap-4 shrink-0">
+                <div className="bg-[#0a0a0f] border border-gray-800 rounded-lg p-4">
+                  <div className="text-xs text-gray-400">Data Assets</div>
+                  <div className="text-2xl font-bold mt-1">{loading ? '...' : kpi?.data_assets ?? 0}</div>
+                </div>
+                <div className="bg-[#0a0a0f] border border-gray-800 rounded-lg p-4">
+                  <div className="text-xs text-gray-400">Tables Scanned</div>
+                  <div className="text-2xl font-bold mt-1">{loading ? '...' : kpi?.tables_scanned ?? 0}</div>
+                </div>
+                <div className="bg-[#0a0a0f] border border-gray-800 rounded-lg p-4">
+                  <div className="text-xs text-gray-400">PII Columns</div>
+                  <div className="text-2xl font-bold mt-1 text-amber-400">{loading ? '...' : kpi?.pii_columns ?? 0}</div>
+                </div>
+                <div className="bg-[#0a0a0f] border border-gray-800 rounded-lg p-4">
+                  <div className="text-xs text-gray-400">Policy Violations</div>
+                  <div className="text-2xl font-bold mt-1 text-red-400">{loading ? '...' : kpi?.policy_violations ?? 0}</div>
+                </div>
+              </div>
+
+              {/* Lineage map + Pending proposals */}
+              <div className="grid grid-cols-3 gap-6 shrink-0">
+                <div className="col-span-2 bg-[#0a0a0f] border border-gray-800 rounded-lg p-4">
+                  <h3 className="text-xs text-gray-400 font-semibold tracking-wider uppercase mb-3">
+                    Downstream Lineage Map
+                  </h3>
+                  {loading && <div className="text-xs text-gray-600">Loading...</div>}
+                  {!loading && lineage && <LineageMap graph={lineage} />}
+                </div>
+
+                <div className="bg-[#0a0a0f] border border-gray-800 rounded-lg p-4 flex flex-col overflow-hidden max-h-[480px]">
+                  <h3 className="text-xs text-gray-400 font-semibold tracking-wider uppercase mb-3">
+                    Pending Proposals ({proposals.length})
+                  </h3>
+                  {loading && <div className="text-xs text-gray-600">Loading...</div>}
+                  {!loading && proposals.length === 0 && (
+                    <div className="text-xs text-gray-600 text-center py-8">No pending proposals.</div>
+                  )}
+                  <div className="space-y-2 overflow-y-auto flex-1 pr-1">
+                    {proposals.map((p) => (
+                      <div key={p.proposal_id} className="p-2.5 bg-black border border-gray-800 rounded space-y-1.5">
+                        <div className="text-xs font-bold text-gray-200">{p.action_type}</div>
+                        <div className="text-[10px] text-gray-500 break-all">{p.dataset_urn.split(',')[1]}</div>
+                        <div className="text-[10px] text-gray-400">{p.description}</div>
+                        <div className="flex gap-1.5 pt-1">
+                          <button
+                            onClick={() => handleApprove(p)}
+                            disabled={applyingId === p.proposal_id}
+                            className="flex-1 bg-emerald-950 hover:bg-emerald-900 disabled:opacity-50 border border-emerald-700 text-emerald-300 text-[10px] py-1 rounded font-bold transition-colors"
+                          >
+                            {applyingId === p.proposal_id ? '...' : 'APPROVE'}
+                          </button>
+                          <button
+                            onClick={() => handleReject(p)}
+                            disabled={applyingId === p.proposal_id}
+                            className="flex-1 bg-red-950 hover:bg-red-900 disabled:opacity-50 border border-red-700 text-red-300 text-[10px] py-1 rounded font-bold transition-colors"
+                          >
+                            REJECT
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              {/* Live Metrics — все линии в одном графике */}
+              <div className="bg-[#0a0a0f] border border-gray-800 rounded-lg p-4 shrink-0">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs text-gray-400 font-semibold tracking-wider uppercase">Live Metrics</h3>
+                  <div className="flex gap-3">
+                    {(Object.keys(METRIC_CONFIG) as MetricKey[]).map((key) => (
+                      <div key={key} className="flex items-center gap-1.5 text-[10px]">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: METRIC_CONFIG[key].color }}></span>
+                        <span className="text-gray-400">{METRIC_CONFIG[key].label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {history.quality.length === 0 ? (
+                  <div className="text-xs text-gray-600 text-center py-12">
+                    Collecting data... first point in a few seconds.
+                  </div>
+                ) : (
+                  <CombinedMetricsChart history={history} />
+                )}
+              </div>
+
+              {/* Quality Insights + PII Distribution */}
+              <div className="grid grid-cols-2 gap-6 shrink-0">
+                <div className="bg-[#0a0a0f] border border-gray-800 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-xs text-gray-400 font-semibold tracking-wider uppercase">Data Quality Insights</h3>
+                    <span className="text-2xl font-bold text-emerald-400">{loading ? '...' : quality?.overall_score ?? 0}</span>
+                  </div>
+                  {!loading && (quality?.top_issues.length ?? 0) === 0 && (
+                    <div className="text-xs text-gray-600">No active quality issues detected.</div>
+                  )}
+                  <div className="space-y-2">
+                    {quality?.top_issues.map((issue, i) => (
+                      <div key={i} className="flex items-center justify-between text-xs border-b border-gray-900 pb-2">
+                        <div>
+                          <div className="text-gray-300">{issue.type}</div>
+                          <div className="text-gray-600 text-[11px]">{issue.column}</div>
+                        </div>
+                        <span className="text-amber-400 font-bold shrink-0 ml-2">{issue.percentage}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-[#0a0a0f] border border-gray-800 rounded-lg p-4">
+                  <h3 className="text-xs text-gray-400 font-semibold tracking-wider uppercase mb-3">PII Distribution</h3>
+                  {!loading && piiDist && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-red-400">High Risk</span>
+                        <span className="text-gray-300">{piiDist.high_risk} ({piiDist.high_pct}%)</span>
+                      </div>
+                      <div className="h-1.5 bg-gray-900 rounded-full overflow-hidden">
+                        <div className="h-full bg-red-500" style={{ width: `${piiDist.high_pct}%` }}></div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-amber-400">Medium Risk</span>
+                        <span className="text-gray-300">{piiDist.medium_risk} ({piiDist.medium_pct}%)</span>
+                      </div>
+                      <div className="h-1.5 bg-gray-900 rounded-full overflow-hidden">
+                        <div className="h-full bg-amber-500" style={{ width: `${piiDist.medium_pct}%` }}></div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-emerald-400">Low Risk</span>
+                        <span className="text-gray-300">{piiDist.low_risk} ({piiDist.low_pct}%)</span>
+                      </div>
+                      <div className="h-1.5 bg-gray-900 rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-500" style={{ width: `${piiDist.low_pct}%` }}></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeNav === 'Activity Log' && (
+            <div className="bg-[#0a0a0f] border border-gray-800 rounded-lg p-4">
+              <h3 className="text-xs text-gray-400 font-semibold tracking-wider uppercase mb-4">Activity Log</h3>
+              <ActivityLogView events={activityLog} />
             </div>
           )}
 
-          {/* KPI Banner */}
-          <div className="grid grid-cols-4 gap-4 shrink-0">
-            <div className="bg-[#0a0a0f] border border-gray-800 rounded-lg p-4">
-              <div className="text-xs text-gray-400">Data Assets</div>
-              <div className="text-2xl font-bold mt-1">{loading ? '...' : kpi?.data_assets ?? 0}</div>
+          {!['Overview', 'Activity Log'].includes(activeNav) && (
+            <div className="text-center text-gray-600 text-sm py-20">
+              {activeNav} — coming soon
             </div>
-            <div className="bg-[#0a0a0f] border border-gray-800 rounded-lg p-4">
-              <div className="text-xs text-gray-400">Tables Scanned</div>
-              <div className="text-2xl font-bold mt-1">{loading ? '...' : kpi?.tables_scanned ?? 0}</div>
-            </div>
-            <div className="bg-[#0a0a0f] border border-gray-800 rounded-lg p-4">
-              <div className="text-xs text-gray-400">PII Columns</div>
-              <div className="text-2xl font-bold mt-1 text-amber-400">{loading ? '...' : kpi?.pii_columns ?? 0}</div>
-            </div>
-            <div className="bg-[#0a0a0f] border border-gray-800 rounded-lg p-4">
-              <div className="text-xs text-gray-400">Policy Violations</div>
-              <div className="text-2xl font-bold mt-1 text-red-400">{loading ? '...' : kpi?.policy_violations ?? 0}</div>
-            </div>
-          </div>
-
-          {/* Lineage map + Pending proposals */}
-          <div className="grid grid-cols-3 gap-6 shrink-0">
-            <div className="col-span-2 bg-[#0a0a0f] border border-gray-800 rounded-lg p-4">
-              <h3 className="text-xs text-gray-400 font-semibold tracking-wider uppercase mb-3">
-                Downstream Lineage Map
-              </h3>
-              {loading && <div className="text-xs text-gray-600">Loading...</div>}
-              {!loading && lineage && <LineageMap graph={lineage} />}
-            </div>
-
-            <div className="bg-[#0a0a0f] border border-gray-800 rounded-lg p-4 flex flex-col overflow-hidden max-h-[480px]">
-              <h3 className="text-xs text-gray-400 font-semibold tracking-wider uppercase mb-3">
-                Pending Proposals ({proposals.length})
-              </h3>
-              {loading && <div className="text-xs text-gray-600">Loading...</div>}
-              {!loading && proposals.length === 0 && (
-                <div className="text-xs text-gray-600 text-center py-8">No pending proposals.</div>
-              )}
-              <div className="space-y-2 overflow-y-auto flex-1 pr-1">
-                {proposals.map((p) => (
-                  <div key={p.proposal_id} className="p-2.5 bg-black border border-gray-800 rounded space-y-1.5">
-                    <div className="text-xs font-bold text-gray-200">{p.action_type}</div>
-                    <div className="text-[10px] text-gray-500 break-all">{p.dataset_urn.split(',')[1]}</div>
-                    <div className="text-[10px] text-gray-400">{p.description}</div>
-                    <div className="flex gap-1.5 pt-1">
-                      <button
-                        onClick={() => handleApprove(p)}
-                        disabled={applyingId === p.proposal_id}
-                        className="flex-1 bg-emerald-950 hover:bg-emerald-900 disabled:opacity-50 border border-emerald-700 text-emerald-300 text-[10px] py-1 rounded font-bold transition-colors"
-                      >
-                        {applyingId === p.proposal_id ? '...' : 'APPROVE'}
-                      </button>
-                      <button
-                        onClick={() => handleReject(p)}
-                        disabled={applyingId === p.proposal_id}
-                        className="flex-1 bg-red-950 hover:bg-red-900 disabled:opacity-50 border border-red-700 text-red-300 text-[10px] py-1 rounded font-bold transition-colors"
-                      >
-                        REJECT
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-          {/* Live Metrics — все линии в одном графике */}
-          <div className="bg-[#0a0a0f] border border-gray-800 rounded-lg p-4 shrink-0">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs text-gray-400 font-semibold tracking-wider uppercase">Live Metrics</h3>
-              <div className="flex gap-3">
-                {(Object.keys(METRIC_CONFIG) as MetricKey[]).map((key) => (
-                  <div key={key} className="flex items-center gap-1.5 text-[10px]">
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: METRIC_CONFIG[key].color }}></span>
-                    <span className="text-gray-400">{METRIC_CONFIG[key].label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            {history.quality.length === 0 ? (
-              <div className="text-xs text-gray-600 text-center py-12">
-                Collecting data... first point in a few seconds.
-              </div>
-            ) : (
-              <CombinedMetricsChart history={history} />
-            )}
-          </div>
-
-          {/* Quality Insights + PII Distribution */}
-          <div className="grid grid-cols-2 gap-6 shrink-0">
-            <div className="bg-[#0a0a0f] border border-gray-800 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs text-gray-400 font-semibold tracking-wider uppercase">Data Quality Insights</h3>
-                <span className="text-2xl font-bold text-emerald-400">{loading ? '...' : quality?.overall_score ?? 0}</span>
-              </div>
-              {!loading && (quality?.top_issues.length ?? 0) === 0 && (
-                <div className="text-xs text-gray-600">No active quality issues detected.</div>
-              )}
-              <div className="space-y-2">
-                {quality?.top_issues.map((issue, i) => (
-                  <div key={i} className="flex items-center justify-between text-xs border-b border-gray-900 pb-2">
-                    <div>
-                      <div className="text-gray-300">{issue.type}</div>
-                      <div className="text-gray-600 text-[11px]">{issue.column}</div>
-                    </div>
-                    <span className="text-amber-400 font-bold shrink-0 ml-2">{issue.percentage}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-[#0a0a0f] border border-gray-800 rounded-lg p-4">
-              <h3 className="text-xs text-gray-400 font-semibold tracking-wider uppercase mb-3">PII Distribution</h3>
-              {!loading && piiDist && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-red-400">High Risk</span>
-                    <span className="text-gray-300">{piiDist.high_risk} ({piiDist.high_pct}%)</span>
-                  </div>
-                  <div className="h-1.5 bg-gray-900 rounded-full overflow-hidden">
-                    <div className="h-full bg-red-500" style={{ width: `${piiDist.high_pct}%` }}></div>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-amber-400">Medium Risk</span>
-                    <span className="text-gray-300">{piiDist.medium_risk} ({piiDist.medium_pct}%)</span>
-                  </div>
-                  <div className="h-1.5 bg-gray-900 rounded-full overflow-hidden">
-                    <div className="h-full bg-amber-500" style={{ width: `${piiDist.medium_pct}%` }}></div>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-emerald-400">Low Risk</span>
-                    <span className="text-gray-300">{piiDist.low_risk} ({piiDist.low_pct}%)</span>
-                  </div>
-                  <div className="h-1.5 bg-gray-900 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500" style={{ width: `${piiDist.low_pct}%` }}></div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          )}
         </main>
       </div>
     </div>

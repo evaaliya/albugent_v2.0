@@ -138,6 +138,18 @@ def approve_proposal(patch_id: str, dataset_urn: str) -> Dict[str, Any]:
 @app.post("/api/proposals/{patch_id}/reject")
 def reject_proposal(patch_id: str) -> Dict[str, Any]:
     """Reject ничего не пишет в БД — просто подтверждение для UI, что карточка убрана из очереди."""
+    from mcp_server.utils.patch_applier import _append_activity_log
+    from datetime import datetime, timezone
+
+    _append_activity_log({
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "action": "reject",
+        "patch_id": patch_id,
+        "dataset_urn": None,
+        "patch_type": None,
+        "target_column": None,
+        "rows_updated": 0,
+    })
     return {"patch_id": patch_id, "status": "rejected"}
 
 
@@ -176,3 +188,17 @@ def lineage_graph() -> Dict[str, Any]:
 
     edge_list = [{"source": s, "target": t} for s, t in edges]
     return {"nodes": nodes, "edges": edge_list}
+
+@app.get("/api/activity-log")
+def activity_log() -> Dict[str, Any]:
+    import json
+    from pathlib import Path
+
+    log_path = Path("data/activity_log.json")
+    if not log_path.exists():
+        return {"events": []}
+
+    with open(log_path, "r", encoding="utf-8") as f:
+        events = json.load(f)
+
+    return {"events": list(reversed(events))}  # самые свежие сверху
