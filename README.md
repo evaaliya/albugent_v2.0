@@ -108,6 +108,86 @@ Both entry points read and write the same `.db` files in `data/`. Anomalies fixe
 ```
 
 ---
+```mermaid
+graph TD
+    subgraph DATA["📦 Data Layer"]
+        DB1[("healthcare.db")]
+        DB2[("fiction-retail.db")]
+        DB3[("nyc-taxi.db")]
+    end
+
+    subgraph ENGINE["⚙️ Deterministic Engine — no LLM"]
+        REG["scan_enterprise_datasets()"]
+        subgraph UTILS["mcp_server/utils/"]
+            PROF["anomaly_profiler.py"]
+            PII["pii_detector.py"]
+            RISK["risk_evaluator.py"]
+            LIN["lineage_discoverer.py"]
+            GEN["remediation_generator.py"]
+        end
+    end
+
+    subgraph WRITE["🔒 Write-Isolated Layer"]
+        APPLY["patch_applier.py<br/><b>NOT an MCP tool</b><br/>no LLM code path"]
+    end
+
+    subgraph MCPSERVER["🔌 mcp_server.py — FastMCP Server (stdio)"]
+        MCPCORE["FastMCP instance<br/>registers utils/ functions as @mcp.tool()"]
+        TOOLS["exposed tools:<br/>inspect_dataset_schema<br/>auto_profile_dataset_anomalies<br/>score_dataset_risk<br/>check_row_impact<br/>get_circuit_breaker_status"]
+    end
+
+    subgraph CLI["🤖 CLI Entry Point"]
+        AGENTPY["agent.py"]
+        STRANDS["Strands Agent<br/>(AWS Bedrock Nova Pro)"]
+        SUMMARY["Executive Summary<br/>(only LLM call, no tool access)"]
+        PR["GitHub Draft PR"]
+    end
+
+    subgraph WEB["🖥️ Web Entry Point"]
+        FASTAPI["FastAPI (web_api/main.py)<br/>imports utils/ directly, no MCP"]
+        REACT["React Dashboard"]
+        HUMAN(["👤 Human clicks Approve"])
+    end
+
+    DB1 --> REG
+    DB2 --> REG
+    DB3 --> REG
+    REG --> PROF
+    REG --> PII
+    REG --> RISK
+    REG --> LIN
+    PROF --> GEN
+    PII --> GEN
+    RISK --> GEN
+    LIN --> GEN
+
+    UTILS -.wrapped by.-> MCPCORE
+    MCPCORE --> TOOLS
+
+    TOOLS -.read-only, stdio.-> STRANDS
+    STRANDS --> AGENTPY
+    AGENTPY --> SUMMARY
+    SUMMARY --> PR
+
+    GEN --> FASTAPI
+    FASTAPI --> REACT
+    REACT --> HUMAN
+    HUMAN -->|"explicit approve action"| APPLY
+    APPLY -->|"UPDATE"| DB1
+    APPLY -->|"UPDATE"| DB2
+    APPLY -->|"UPDATE"| DB3
+
+    style ENGINE fill:#f1f5f9,stroke:#64748b
+    style WRITE fill:#fee2e2,stroke:#dc2626,stroke-width:2px
+    style MCPSERVER fill:#fef3c7,stroke:#d97706,stroke-width:2px
+    style CLI fill:#e0f2fe,stroke:#0284c7
+    style WEB fill:#d1fae5,stroke:#059669
+    style APPLY fill:#fecaca,stroke:#dc2626,stroke-width:2px
+    style STRANDS fill:#bae6fd,stroke:#0284c7
+    style HUMAN fill:#a7f3d0,stroke:#059669
+
+```
+---
 
 ## Repository Structure
 
