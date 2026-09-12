@@ -98,8 +98,8 @@ graph TD
         TOOLS["exposed tools:<br/>inspect_dataset_schema<br/>auto_profile_dataset_anomalies<br/>score_dataset_risk<br/>check_row_impact<br/>get_circuit_breaker_status"]
     end
 
-    subgraph CLI["🤖 CLI Entry Point"]
-        AGENTPY["agent.py"]
+    subgraph CLI["🤖 agent.py — shared PR flow<br/>(Phase 1 + Phase 2)"]
+        AGENTPY["agent.py main()"]
         STRANDS["Strands Agent<br/>(AWS Bedrock Nova Pro)"]
         SUMMARY["Executive Summary<br/>(only LLM call)"]
         GHUTILS["github_utils.py"]
@@ -110,6 +110,7 @@ graph TD
         FASTAPI["FastAPI (web_api/main.py)"]
         REACT["React Dashboard"]
         HUMAN(["👤 Human clicks Approve"])
+        GENPRBTN(["🔘 Human clicks Generate PR"])
     end
 
     DB1 --> REG
@@ -138,10 +139,13 @@ graph TD
     GEN --> FASTAPI
     FASTAPI --> REACT
     REACT --> HUMAN
+    REACT --> GENPRBTN
     HUMAN -->|"explicit approve"| APPLY
     APPLY -->|"UPDATE"| DB1
     APPLY -->|"UPDATE"| DB2
     APPLY -->|"UPDATE"| DB3
+
+    GENPRBTN ==>|"POST /api/generate-pr<br/>calls agent.py main()<br/>— same flow as CLI"| AGENTPY
 
     style ENGINE fill:#f1f5f9,stroke:#64748b
     style WRITE fill:#fee2e2,stroke:#dc2626,stroke-width:2px
@@ -151,6 +155,7 @@ graph TD
     style APPLY fill:#fecaca,stroke:#dc2626,stroke-width:2px
     style STRANDS fill:#bae6fd,stroke:#0284c7
     style HUMAN fill:#a7f3d0,stroke:#059669
+    style GENPRBTN fill:#a7f3d0,stroke:#059669
 ```
 
 ---
