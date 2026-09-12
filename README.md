@@ -67,46 +67,6 @@ Both entry points read and write the same `.db` files in `data/`. Anomalies fixe
 ---
 
 ## Architecture
-
-```
-┌────────────────────────────────────────────────────────────-─┐
-│                          agent.py                            │
-│  (entrypoint — orchestrates both phases)                     │
-└───────────────┬───────────────────────────────┬──────────────┘
-                │                               │
-     Phase 1 (deterministic)          Phase 2 (agentic)
-                 │                               │
-                 ▼                               ▼
-   ┌─────────────────────────-┐    ┌────────────────────────-──┐
-   │  context_builder.py      │    │   Strands Agent           │
-   │  - collect_governance    │    │   (Bedrock Nova Pro)      │
-   │    _context()            │    │   tools = MCP tool subset │
-   └─────────┬────────────────┘    └───────────┬───────────────┘
-             │                                 │ stdio (MCP)
-             ▼                                 ▼
-   ┌────────────────────────-─┐    ┌─────────────────────────--─┐
-   │ remediation_generator.py │    │   mcp_server.py            │
-   │ → deterministic SQL      │    │   (FastMCP server)         │
-   └─────────┬────────────────┘    └───────────┬───────────────-┘
-             │                                  │
-             │                          ┌─────────┴─────────----─┐
-             │                          │   utils/               │
-             │                          │  - anomaly_profiler    │
-             │                          │  - pii_detector        │
-             │                          │  - risk_evaluator      │
-             │                          │  - lineage_discoverer  │
-             │                          │  - graph_engine        │
-             │                          │  - db_utils            │
-             │                          └────────────────────────┘
-             │                                    │
-             └────────────────┬───────────────────┘
-                               ▼
-                     ┌──────────────────┐
-                     │  github_utils.py │
-                     │  → Draft PR      │
-                     └──────────────────┘
-```
-
 ---
 ```mermaid
 graph TD
@@ -118,6 +78,7 @@ graph TD
 
     subgraph ENGINE["⚙️ Deterministic Engine — no LLM"]
         REG["scan_enterprise_datasets()"]
+        CTXB["context_builder.py<br/>collect_governance_context()<br/>(used by agent.py only)"]
         subgraph UTILS["mcp_server/utils/"]
             PROF["anomaly_profiler.py"]
             PII["pii_detector.py"]
@@ -140,6 +101,7 @@ graph TD
         AGENTPY["agent.py"]
         STRANDS["Strands Agent<br/>(AWS Bedrock Nova Pro)"]
         SUMMARY["Executive Summary<br/>(only LLM call, no tool access)"]
+        GHUTILS["github_utils.py<br/>create_remediation_pr()"]
         PR["GitHub Draft PR"]
     end
 
@@ -152,10 +114,11 @@ graph TD
     DB1 --> REG
     DB2 --> REG
     DB3 --> REG
-    REG --> PROF
-    REG --> PII
-    REG --> RISK
-    REG --> LIN
+    REG --> CTXB
+    CTXB --> PROF
+    CTXB --> PII
+    CTXB --> RISK
+    CTXB --> LIN
     PROF --> GEN
     PII --> GEN
     RISK --> GEN
@@ -167,7 +130,9 @@ graph TD
     TOOLS -.read-only, stdio.-> STRANDS
     STRANDS --> AGENTPY
     AGENTPY --> SUMMARY
-    SUMMARY --> PR
+    GEN --> GHUTILS
+    SUMMARY --> GHUTILS
+    GHUTILS --> PR
 
     GEN --> FASTAPI
     FASTAPI --> REACT
