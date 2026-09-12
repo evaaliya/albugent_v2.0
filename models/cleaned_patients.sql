@@ -2,10 +2,6 @@
 -- Albugent Autonomous Data Governance: Automated Remediation Script
 -- Target Table: raw_patients
 -- Generated Fixes:
---   * Fixed invalid/negative age range in column 'age'
---   * Fixed negative values in numeric column 'billing_amount'
---   * Replaced NULLs with 'UNKNOWN' in text column 'name'
---   * Corrected inverted date logic between 'date_of_admission' and 'discharge_date'
 --   * Flagged PII columns for governance review: name, medical_condition, medication
 -- =====================================================================
 
@@ -13,16 +9,16 @@ DROP TABLE IF EXISTS cleaned_raw_patients;
 
 CREATE TABLE cleaned_raw_patients AS
 SELECT 
-    COALESCE(name, 'UNKNOWN') AS name,  -- [PII] Contains personally identifiable information
-   CASE WHEN age < 0 OR age > 120 THEN NULL ELSE age END AS age,
+    name AS name,  -- [PII] Contains personally identifiable information
+   age AS age,
    gender AS gender,
    blood_type AS blood_type,
    medical_condition AS medical_condition,  -- [PII] Contains personally identifiable information
-   CASE WHEN date_of_admission > discharge_date THEN discharge_date ELSE date_of_admission END AS date_of_admission,
+   date_of_admission AS date_of_admission,
    doctor AS doctor,
    hospital AS hospital,
    insurance_provider AS insurance_provider,
-   CASE WHEN billing_amount < 0 THEN 0 ELSE billing_amount END AS billing_amount,
+   billing_amount AS billing_amount,
    room_number AS room_number,
    admission_type AS admission_type,
    discharge_date AS discharge_date,
@@ -35,9 +31,7 @@ FROM raw_patients;
 -- Albugent Autonomous Data Governance: Automated Remediation Script
 -- Target Table: staging_patients
 -- Generated Fixes:
---   * Fixed invalid/negative age range in column 'age'
 --   * Fixed negative values in numeric column 'billing_amount'
---   * Replaced NULLs with 'UNKNOWN' in text column 'name'
 --   * Corrected inverted date logic between 'date_of_admission' and 'discharge_date'
 --   * Flagged PII columns for governance review: name, medical_condition, medication
 -- =====================================================================
@@ -46,8 +40,8 @@ DROP TABLE IF EXISTS cleaned_staging_patients;
 
 CREATE TABLE cleaned_staging_patients AS
 SELECT 
-    COALESCE(name, 'UNKNOWN') AS name,  -- [PII] Contains personally identifiable information
-   CASE WHEN age < 0 OR age > 120 THEN NULL ELSE age END AS age,
+    name AS name,  -- [PII] Contains personally identifiable information
+   age AS age,
    gender AS gender,
    blood_type AS blood_type,
    medical_condition AS medical_condition,  -- [PII] Contains personally identifiable information
