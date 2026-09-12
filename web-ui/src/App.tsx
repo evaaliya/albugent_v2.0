@@ -137,10 +137,12 @@ function LineageMap({ graph }: { graph: LineageGraph }) {
           <button
             key={d}
             onClick={() => setActiveDomain(d)}
-            className={`text-[10px] px-2.5 py-1 rounded transition-colors ${activeDomain === d
-              ? 'bg-violet-950 text-violet-300 border border-violet-700'
-              : 'bg-gray-900 text-gray-500 border border-gray-800 hover:text-gray-300'
-              }`}
+            className="text-[10px] px-2.5 py-1 rounded transition-colors"
+            style={
+              activeDomain === d
+                ? { backgroundColor: 'var(--color-accent-bg)', color: 'var(--color-accent-hover)', border: '1px solid var(--color-accent-border)' }
+                : { backgroundColor: 'var(--color-bg-card-alt)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }
+            }
           >
             {d}
           </button>
@@ -162,7 +164,7 @@ function LineageMap({ graph }: { graph: LineageGraph }) {
               <path
                 key={i}
                 d={`M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`}
-                stroke="#4c1d95"
+                stroke="#7dd3fc"
                 strokeWidth="1.5"
                 strokeDasharray="4 3"
                 fill="none"
@@ -177,16 +179,20 @@ function LineageMap({ graph }: { graph: LineageGraph }) {
           return (
             <div
               key={n.id}
-              className="absolute bg-[#0d0d14] border border-violet-900/60 rounded-lg px-3 py-2 hover:border-violet-500 transition-colors"
-              style={{ left: p.x, top: p.y, width: NODE_W, height: NODE_H }}
+              className="absolute rounded-lg px-3 py-2 transition-colors"
+              style={{
+                left: p.x, top: p.y, width: NODE_W, height: NODE_H,
+                backgroundColor: 'var(--color-bg-card)',
+                border: '1px solid var(--color-accent-border)',
+              }}
             >
               <div className="flex items-center justify-between gap-1">
-                <span className="text-xs font-medium text-gray-200 truncate">{n.table}</span>
+                <span className="text-xs font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>{n.table}</span>
                 {n.has_pii && (
-                  <span className="text-[9px] bg-red-950 text-red-400 border border-red-800 px-1 rounded shrink-0">PII</span>
+                  <span className="text-[9px] px-1 rounded shrink-0" style={{ backgroundColor: 'var(--color-danger-bg)', color: 'var(--color-danger)', border: '1px solid var(--color-danger-border)' }}>PII</span>
                 )}
               </div>
-              <div className="text-[10px] text-gray-500 mt-1">{n.col_count} cols</div>
+              <div className="text-[10px] mt-1" style={{ color: 'var(--color-text-muted)' }}>{n.col_count} cols</div>
             </div>
           );
         })}
@@ -205,12 +211,15 @@ const NAV_ITEMS = [
 
 function Sidebar({ active, onSelect }: { active: string; onSelect: (item: string) => void }) {
   return (
-    <aside className="w-56 shrink-0 border-r border-gray-800 bg-[#08080c] flex flex-col p-4">
+    <aside
+      className="w-56 shrink-0 flex flex-col p-4"
+      style={{ borderRight: '1px solid var(--color-border)', backgroundColor: 'var(--color-bg-card)' }}
+    >
       <div className="flex items-center gap-2 mb-8">
-        <span className="text-violet-400 text-xl">[]</span>
+        <span className="text-xl" style={{ color: 'var(--color-accent)' }}>[]</span>
         <div>
-          <div className="text-sm font-bold text-white">Albugent</div>
-          <div className="text-[10px] text-gray-500">Governance Studio</div>
+          <div className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>Albugent</div>
+          <div className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Governance Studio</div>
         </div>
       </div>
       <nav className="flex flex-col gap-1">
@@ -218,10 +227,12 @@ function Sidebar({ active, onSelect }: { active: string; onSelect: (item: string
           <button
             key={item}
             onClick={() => onSelect(item)}
-            className={`text-left text-xs px-3 py-2 rounded transition-colors ${active === item
-              ? 'bg-violet-950/60 text-violet-300 border border-violet-800'
-              : 'text-gray-400 hover:bg-gray-900'
-              }`}
+            className="text-left text-xs px-3 py-2 rounded transition-colors"
+            style={
+              active === item
+                ? { backgroundColor: 'var(--color-accent-bg)', color: 'var(--color-accent-hover)', border: '1px solid var(--color-accent-border)' }
+                : { color: 'var(--color-text-secondary)' }
+            }
           >
             {item}
           </button>
@@ -426,27 +437,32 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen bg-[#060608] text-gray-200 font-mono flex overflow-hidden">
+    <div className="h-screen font-mono flex overflow-hidden" style={{ backgroundColor: 'var(--color-bg-page)', color: 'var(--color-text-primary)' }}>
       <Sidebar active={activeNav} onSelect={setActiveNav} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="border-b border-gray-800 px-6 py-4 flex items-center justify-between shrink-0">
+        <header
+          className="px-6 py-4 flex items-center justify-between shrink-0"
+          style={{ borderBottom: '1px solid var(--color-border)' }}
+        >
           <div>
-            <h1 className="text-lg font-bold text-white">Governance Overview</h1>
-            <div className="text-xs text-gray-500">Deterministic. Transparent. Trusted.</div>
+            <h1 className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>Governance Overview</h1>
+            <div className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Deterministic. Transparent. Trusted.</div>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handleGeneratePR}
               disabled={generatingPR}
-              className="text-xs bg-violet-950 hover:bg-violet-900 disabled:opacity-50 border border-violet-700 text-violet-300 px-3 py-1.5 rounded font-bold transition-colors"
+              className="text-xs disabled:opacity-50 px-3 py-1.5 rounded font-bold transition-colors"
+              style={{ backgroundColor: 'var(--color-accent)', color: '#ffffff' }}
             >
               {generatingPR ? 'Generating PR...' : 'Generate PR'}
             </button>
             <button
               onClick={loadData}
-              className="text-xs bg-gray-900 hover:bg-gray-800 border border-gray-700 text-gray-300 px-3 py-1.5 rounded transition-colors"
+              className="text-xs px-3 py-1.5 rounded transition-colors"
+              style={{ backgroundColor: 'var(--color-bg-card-alt)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
             >
               Refresh
             </button>
@@ -454,10 +470,12 @@ export default function App() {
         </header>
         {prResult && (
           <div
-            className={`px-6 py-2 text-xs border-b shrink-0 ${prResult.status === 'success'
-              ? 'bg-emerald-950/30 border-emerald-900 text-emerald-300'
-              : 'bg-red-950/30 border-red-900 text-red-300'
-              }`}
+            className="px-6 py-2 text-xs shrink-0"
+            style={
+              prResult.status === 'success'
+                ? { backgroundColor: 'var(--color-success-bg)', borderBottom: '1px solid var(--color-success-border)', color: 'var(--color-success)' }
+                : { backgroundColor: 'var(--color-danger-bg)', borderBottom: '1px solid var(--color-danger-border)', color: 'var(--color-danger)' }
+            }
           >
             {prResult.status === 'success' ? (
               <>
@@ -483,60 +501,62 @@ export default function App() {
 
               {/* KPI Banner */}
               <div className="grid grid-cols-4 gap-4 shrink-0">
-                <div className="bg-[#0a0a0f] border border-gray-800 rounded-lg p-4">
-                  <div className="text-xs text-gray-400">Data Assets</div>
-                  <div className="text-2xl font-bold mt-1">{loading ? '...' : kpi?.data_assets ?? 0}</div>
+                <div className="rounded-lg p-4" style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+                  <div className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Data Assets</div>
+                  <div className="text-2xl font-bold mt-1" style={{ color: 'var(--color-text-primary)' }}>{loading ? '...' : kpi?.data_assets ?? 0}</div>
                 </div>
-                <div className="bg-[#0a0a0f] border border-gray-800 rounded-lg p-4">
-                  <div className="text-xs text-gray-400">Tables Scanned</div>
-                  <div className="text-2xl font-bold mt-1">{loading ? '...' : kpi?.tables_scanned ?? 0}</div>
+                <div className="rounded-lg p-4" style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+                  <div className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Tables Scanned</div>
+                  <div className="text-2xl font-bold mt-1" style={{ color: 'var(--color-text-primary)' }}>{loading ? '...' : kpi?.tables_scanned ?? 0}</div>
                 </div>
-                <div className="bg-[#0a0a0f] border border-gray-800 rounded-lg p-4">
-                  <div className="text-xs text-gray-400">PII Columns</div>
-                  <div className="text-2xl font-bold mt-1 text-amber-400">{loading ? '...' : kpi?.pii_columns ?? 0}</div>
+                <div className="rounded-lg p-4" style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+                  <div className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>PII Columns</div>
+                  <div className="text-2xl font-bold mt-1" style={{ color: 'var(--color-warning)' }}>{loading ? '...' : kpi?.pii_columns ?? 0}</div>
                 </div>
-                <div className="bg-[#0a0a0f] border border-gray-800 rounded-lg p-4">
-                  <div className="text-xs text-gray-400">Policy Violations</div>
-                  <div className="text-2xl font-bold mt-1 text-red-400">{loading ? '...' : kpi?.policy_violations ?? 0}</div>
+                <div className="rounded-lg p-4" style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+                  <div className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Policy Violations</div>
+                  <div className="text-2xl font-bold mt-1" style={{ color: 'var(--color-danger)' }}>{loading ? '...' : kpi?.policy_violations ?? 0}</div>
                 </div>
               </div>
 
               {/* Lineage map + Pending proposals */}
               <div className="grid grid-cols-3 gap-6 shrink-0">
-                <div className="col-span-2 bg-[#0a0a0f] border border-gray-800 rounded-lg p-4">
-                  <h3 className="text-xs text-gray-400 font-semibold tracking-wider uppercase mb-3">
+                <div className="col-span-2 rounded-lg p-4" style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+                  <h3 className="text-xs font-semibold tracking-wider uppercase mb-3" style={{ color: 'var(--color-text-secondary)' }}>
                     Downstream Lineage Map
                   </h3>
-                  {loading && <div className="text-xs text-gray-600">Loading...</div>}
+                  {loading && <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Loading...</div>}
                   {!loading && lineage && <LineageMap graph={lineage} />}
                 </div>
 
-                <div className="bg-[#0a0a0f] border border-gray-800 rounded-lg p-4 flex flex-col overflow-hidden max-h-[480px]">
-                  <h3 className="text-xs text-gray-400 font-semibold tracking-wider uppercase mb-3">
+                <div className="rounded-lg p-4 flex flex-col overflow-hidden max-h-[480px]" style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+                  <h3 className="text-xs font-semibold tracking-wider uppercase mb-3" style={{ color: 'var(--color-text-secondary)' }}>
                     Pending Proposals ({proposals.length})
                   </h3>
-                  {loading && <div className="text-xs text-gray-600">Loading...</div>}
+                  {loading && <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Loading...</div>}
                   {!loading && proposals.length === 0 && (
-                    <div className="text-xs text-gray-600 text-center py-8">No pending proposals.</div>
+                    <div className="text-xs text-center py-8" style={{ color: 'var(--color-text-muted)' }}>No pending proposals.</div>
                   )}
                   <div className="space-y-2 overflow-y-auto flex-1 pr-1">
                     {proposals.map((p) => (
-                      <div key={p.proposal_id} className="p-2.5 bg-black border border-gray-800 rounded space-y-1.5">
-                        <div className="text-xs font-bold text-gray-200">{p.action_type}</div>
-                        <div className="text-[10px] text-gray-500 break-all">{p.dataset_urn.split(',')[1]}</div>
-                        <div className="text-[10px] text-gray-400">{p.description}</div>
+                      <div key={p.proposal_id} className="p-2.5 rounded space-y-1.5" style={{ backgroundColor: 'var(--color-bg-card-alt)', border: '1px solid var(--color-border)' }}>
+                        <div className="text-xs font-bold" style={{ color: 'var(--color-text-primary)' }}>{p.action_type}</div>
+                        <div className="text-[10px] break-all" style={{ color: 'var(--color-text-muted)' }}>{p.dataset_urn.split(',')[1]}</div>
+                        <div className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>{p.description}</div>
                         <div className="flex gap-1.5 pt-1">
                           <button
                             onClick={() => handleApprove(p)}
                             disabled={applyingId === p.proposal_id}
-                            className="flex-1 bg-emerald-950 hover:bg-emerald-900 disabled:opacity-50 border border-emerald-700 text-emerald-300 text-[10px] py-1 rounded font-bold transition-colors"
+                            className="flex-1 disabled:opacity-50 text-[10px] py-1 rounded font-bold transition-colors"
+                            style={{ backgroundColor: 'var(--color-success-bg)', border: '1px solid var(--color-success-border)', color: 'var(--color-success)' }}
                           >
                             {applyingId === p.proposal_id ? '...' : 'APPROVE'}
                           </button>
                           <button
                             onClick={() => handleReject(p)}
                             disabled={applyingId === p.proposal_id}
-                            className="flex-1 bg-red-950 hover:bg-red-900 disabled:opacity-50 border border-red-700 text-red-300 text-[10px] py-1 rounded font-bold transition-colors"
+                            className="flex-1 disabled:opacity-50 text-[10px] py-1 rounded font-bold transition-colors"
+                            style={{ backgroundColor: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-border)', color: 'var(--color-danger)' }}
                           >
                             REJECT
                           </button>
@@ -547,20 +567,20 @@ export default function App() {
                 </div>
               </div>
               {/* Live Metrics — все линии в одном графике */}
-              <div className="bg-[#0a0a0f] border border-gray-800 rounded-lg p-4 shrink-0">
+              <div className="rounded-lg p-4 shrink-0" style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xs text-gray-400 font-semibold tracking-wider uppercase">Live Metrics</h3>
+                  <h3 className="text-xs font-semibold tracking-wider uppercase" style={{ color: 'var(--color-text-secondary)' }}>Live Metrics</h3>
                   <div className="flex gap-3">
                     {(Object.keys(METRIC_CONFIG) as MetricKey[]).map((key) => (
                       <div key={key} className="flex items-center gap-1.5 text-[10px]">
                         <span className="w-2 h-2 rounded-full" style={{ backgroundColor: METRIC_CONFIG[key].color }}></span>
-                        <span className="text-gray-400">{METRIC_CONFIG[key].label}</span>
+                        <span style={{ color: 'var(--color-text-secondary)' }}>{METRIC_CONFIG[key].label}</span>
                       </div>
                     ))}
                   </div>
                 </div>
                 {history.quality.length === 0 ? (
-                  <div className="text-xs text-gray-600 text-center py-12">
+                  <div className="text-xs text-center py-12" style={{ color: 'var(--color-text-muted)' }}>
                     Collecting data... first point in a few seconds.
                   </div>
                 ) : (
@@ -570,53 +590,53 @@ export default function App() {
 
               {/* Quality Insights + PII Distribution */}
               <div className="grid grid-cols-2 gap-6 shrink-0">
-                <div className="bg-[#0a0a0f] border border-gray-800 rounded-lg p-4">
+                <div className="rounded-lg p-4" style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-xs text-gray-400 font-semibold tracking-wider uppercase">Data Quality Insights</h3>
-                    <span className="text-2xl font-bold text-emerald-400">{loading ? '...' : quality?.overall_score ?? 0}</span>
+                    <h3 className="text-xs font-semibold tracking-wider uppercase" style={{ color: 'var(--color-text-secondary)' }}>Data Quality Insights</h3>
+                    <span className="text-2xl font-bold" style={{ color: 'var(--color-success)' }}>{loading ? '...' : quality?.overall_score ?? 0}</span>
                   </div>
                   {!loading && (quality?.top_issues.length ?? 0) === 0 && (
-                    <div className="text-xs text-gray-600">No active quality issues detected.</div>
+                    <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>No active quality issues detected.</div>
                   )}
                   <div className="space-y-2">
                     {quality?.top_issues.map((issue, i) => (
-                      <div key={i} className="flex items-center justify-between text-xs border-b border-gray-900 pb-2">
+                      <div key={i} className="flex items-center justify-between text-xs pb-2" style={{ borderBottom: '1px solid var(--color-border)' }}>
                         <div>
-                          <div className="text-gray-300">{issue.type}</div>
-                          <div className="text-gray-600 text-[11px]">{issue.column}</div>
+                          <div style={{ color: 'var(--color-text-primary)' }}>{issue.type}</div>
+                          <div className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{issue.column}</div>
                         </div>
-                        <span className="text-amber-400 font-bold shrink-0 ml-2">{issue.percentage}%</span>
+                        <span className="font-bold shrink-0 ml-2" style={{ color: 'var(--color-warning)' }}>{issue.percentage}%</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="bg-[#0a0a0f] border border-gray-800 rounded-lg p-4">
-                  <h3 className="text-xs text-gray-400 font-semibold tracking-wider uppercase mb-3">PII Distribution</h3>
+                <div className="rounded-lg p-4" style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+                  <h3 className="text-xs font-semibold tracking-wider uppercase mb-3" style={{ color: 'var(--color-text-secondary)' }}>PII Distribution</h3>
                   {!loading && piiDist && (
                     <div className="space-y-3">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-red-400">High Risk</span>
-                        <span className="text-gray-300">{piiDist.high_risk} ({piiDist.high_pct}%)</span>
+                        <span style={{ color: 'var(--color-danger)' }}>High Risk</span>
+                        <span style={{ color: 'var(--color-text-secondary)' }}>{piiDist.high_risk} ({piiDist.high_pct}%)</span>
                       </div>
-                      <div className="h-1.5 bg-gray-900 rounded-full overflow-hidden">
-                        <div className="h-full bg-red-500" style={{ width: `${piiDist.high_pct}%` }}></div>
-                      </div>
-
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-amber-400">Medium Risk</span>
-                        <span className="text-gray-300">{piiDist.medium_risk} ({piiDist.medium_pct}%)</span>
-                      </div>
-                      <div className="h-1.5 bg-gray-900 rounded-full overflow-hidden">
-                        <div className="h-full bg-amber-500" style={{ width: `${piiDist.medium_pct}%` }}></div>
+                      <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-bg-card-alt)' }}>
+                        <div className="h-full" style={{ width: `${piiDist.high_pct}%`, backgroundColor: 'var(--color-danger)' }}></div>
                       </div>
 
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-emerald-400">Low Risk</span>
-                        <span className="text-gray-300">{piiDist.low_risk} ({piiDist.low_pct}%)</span>
+                        <span style={{ color: 'var(--color-warning)' }}>Medium Risk</span>
+                        <span style={{ color: 'var(--color-text-secondary)' }}>{piiDist.medium_risk} ({piiDist.medium_pct}%)</span>
                       </div>
-                      <div className="h-1.5 bg-gray-900 rounded-full overflow-hidden">
-                        <div className="h-full bg-emerald-500" style={{ width: `${piiDist.low_pct}%` }}></div>
+                      <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-bg-card-alt)' }}>
+                        <div className="h-full" style={{ width: `${piiDist.medium_pct}%`, backgroundColor: 'var(--color-warning)' }}></div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs">
+                        <span style={{ color: 'var(--color-success)' }}>Low Risk</span>
+                        <span style={{ color: 'var(--color-text-secondary)' }}>{piiDist.low_risk} ({piiDist.low_pct}%)</span>
+                      </div>
+                      <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-bg-card-alt)' }}>
+                        <div className="h-full" style={{ width: `${piiDist.low_pct}%`, backgroundColor: 'var(--color-success)' }}></div>
                       </div>
                     </div>
                   )}
