@@ -5,12 +5,12 @@ from typing import Dict, List, Tuple, Any
 
 def discover_lineage_edges(dataset_registry: Dict[str, Any]) -> List[Tuple[str, str]]:
     """
-    Динамически выявляет связи (lineage) между зарегистрированными датасетами
-    на основе внешних ключей (Foreign Keys) или конвенции наименования слоев.
+    Dynamically identifies lineage between registered datasets
+    based on foreign keys or layer naming conventions.
     """
     edges = []
     
-    # 1. Пробуем найти явные Foreign Keys в SQLite
+    # 1. Trying to find explicit foreign keys in SQLite
     for src_urn, src_meta in dataset_registry.items():
         db_path = src_meta.get("db_path")
         table = src_meta.get("table")
@@ -32,7 +32,7 @@ def discover_lineage_edges(dataset_registry: Dict[str, Any]) -> List[Tuple[str, 
         except Exception:
             pass
 
-    # 2. Неявный fallback: связываем слои raw -> staging -> mart внутри одного домена
+    # 2. Implicit fallback: linking layers (raw -> staging -> mart) within a single domain.
     if not edges:
         grouped = {}
         for urn in dataset_registry.keys():
@@ -54,8 +54,8 @@ def discover_lineage_edges(dataset_registry: Dict[str, Any]) -> List[Tuple[str, 
     return list(set(edges))
 
 def get_downstream_nodes(dataset_urn: str, dataset_registry: Dict[str, Any]) -> List[str]:
-    """Возвращает список всех URN, которые находятся ниже по истоку (downstream) от текущего URN."""
-    # Получаем динамические связи [(src_urn, dst_urn), ...]
+    """Returns a list of all URNs located downstream from the current URN."""
+    # Get dynamic links [(src_urn, dst_urn), ...]
     edges = discover_lineage_edges(dataset_registry)
     
     downstream = []

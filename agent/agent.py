@@ -3,7 +3,6 @@ import sys
 from dotenv import load_dotenv
 from pathlib import Path
 
-# Выравниваем пути
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -43,8 +42,7 @@ bedrock_model = BedrockModel(
 
 def build_sql_remediation_artifact(context_data: dict) -> str:
     """
-    Собирает SQL-артефакты ремедиации для всех датасетов из контекста,
-    используя детерминированный генератор. Без участия LLM.
+    Collects SQL remediation artifacts for all datasets in the context using a deterministic generator. No LLM involvement.
     """
     datasets = context_data.get("datasets", [])
 
@@ -66,10 +64,10 @@ def build_sql_remediation_artifact(context_data: dict) -> str:
 
 def build_quality_variances_table(raw_context: dict) -> str:
     """
-    Строит Table of Quality Variances детерминированно в Python.
-    Агрегирует одинаковые находки (та же колонка + тип ошибки + row count)
-    across pipeline-стадий в одну строку — без участия LLM, значит без
-    риска непоследовательной агрегации.
+    Constructs the Table of Quality Variances deterministically in Python.
+    Aggregates identical findings (same column + error type + row count)
+    across pipeline stages into a single row—without LLM involvement,
+    thereby eliminating the risk of inconsistent aggregation.
     """
     lines = [
         "### Table of Quality Variances",
@@ -116,7 +114,7 @@ def build_quality_variances_table(raw_context: dict) -> str:
 
 
 def build_pii_section(raw_context: dict) -> str:
-    """Строит PII Detections таблицу детерминированно. Без участия LLM."""
+    """It builds the PII detections table deterministically, without the involvement of an LLM."""
     pii_datasets = [ds for ds in raw_context.get("datasets", []) if ds.get("pii_columns")]
 
     if not pii_datasets:
@@ -131,7 +129,7 @@ def build_pii_section(raw_context: dict) -> str:
 
 
 def build_circuit_breaker_section(raw_context: dict) -> str:
-    """Строит Circuit Breaker Status таблицу детерминированно. Без участия LLM."""
+    """It builds the Circuit Breaker Status table deterministically, without LLM involvement."""
     lines = [
         "### Pipeline Lineage & Circuit Breaker Status",
         "",
@@ -147,10 +145,10 @@ def build_circuit_breaker_section(raw_context: dict) -> str:
 
 def generate_executive_summary(raw_context: dict) -> str:
     """
-    ЕДИНСТВЕННЫЙ LLM-вызов во всём пайплайне. Не оркестрация, не tool-use —
-    просто написать несколько предложений поверх уже вычисленных фактов.
-    Модель не может галлюцинировать данные, которых нет в промпте, потому что
-    у неё нет доступа ни к каким tools для "самостоятельного расследования".
+    The only LLM call in the entire pipeline. Not orchestration, not tool use—
+    just writing a few sentences based on facts that have already been computed.
+    The model cannot hallucinate data not present in the prompt, because
+    it has no access to any tools for "independent investigation.".
     """
     datasets = raw_context.get("datasets", [])
     total_datasets = len(datasets)

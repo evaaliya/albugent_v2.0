@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY mcp_server/requirements.txt .
 RUN pip install --no-cache-dir --default-timeout=1000 -r requirements.txt
 
-# Копируем весь корень проекта
+# copying whole project
 COPY . .
 
 ENTRYPOINT ["python", "mcp_server/mcp_server.py"]

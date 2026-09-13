@@ -7,17 +7,17 @@ from typing import Dict, List, Any, Optional
 
 COORDINATE_KEYWORDS = ["longitude", "latitude"]
 
-# Роли для парного сравнения дат. Колонка считается парой к другой ТОЛЬКО если
-# одна попадает в START, другая в END. Просто "похоже на дату" — недостаточно
-# (это и был баг: trip_date матчился с tpep_dropoff_datetime только потому,
-# что обе содержат "date"/"time", хотя trip_date — производная агрегатная дата,
-# не парный timestamp).
+# Roles for pairwise date comparison. A column is considered a pair with another ONLY if
+# one falls under START and the other under END. Simply "looking like a date" is not enough
+# (this was the bug: trip_date matched with tpep_dropoff_datetime simply because
+# both contained "date"/"time", even though trip_date is a derived aggregate date,
+# not a paired timestamp).
 START_KEYWORDS = ["admission", "start", "pickup", "shipped", "created", "signup", "opened"]
 END_KEYWORDS = ["discharge", "end", "dropoff", "delivered", "updated", "closed", "return"]
 
 
 def _is_date_like_column(col: str) -> bool:
-    """Общая проверка 'это вообще похоже на дату' — используется как первичный фильтр."""
+    """A general "does this look like a date?" check — used as a preliminary filter."""
     col_lower = col.lower()
 
     non_date_suffixes = ["_type", "_id", "_status", "_category", "_code", "_flag"]
@@ -33,9 +33,9 @@ def _is_date_like_column(col: str) -> bool:
 
 
 def _get_date_role(col: str) -> Optional[str]:
-    """Возвращает 'start', 'end' или None. None означает — колонка не участвует
-    в парном date-logic сравнении вообще (напр. агрегатные/производные даты
-    вроде trip_date, created_at без пары и т.п.)."""
+    """Returns 'start', 'end', or None. None indicates that the column does not participate
+    in a paired date-logic comparison at all (e.g., aggregate/derived dates
+    like trip_date, unpaired created_at, etc.)."""
     col_lower = col.lower()
     if any(k in col_lower for k in START_KEYWORDS):
         return "start"
@@ -46,7 +46,7 @@ def _get_date_role(col: str) -> Optional[str]:
 
 def profile_table_anomalies(db_path: Path | str, table_name: str) -> Dict[str, Any]:
     """
-    Универсально профилирует ЛЮБУЮ таблицу SQLite на предмет математических и логических аномалий.
+    Universally profiles ANY SQLite table for mathematical and logical anomalies.
     """
     path = Path(db_path)
     if not path.exists() or not table_name:
@@ -80,8 +80,8 @@ def profile_table_anomalies(db_path: Path | str, table_name: str) -> Dict[str, A
         cols = [col[1] for col in columns_info]
         summary["all_columns"] = cols
 
-        # 1. Проверка NULL / Пустых значений по ВСЕМ колонкам
-        NULL_RATE_THRESHOLD = 20.0  # % — выше этого NULL считается legitimate-by-design, не аномалией
+        # 1. Checking for NULL / empty values ​​across ALL columns
+        NULL_RATE_THRESHOLD = 20.0  # % — above this value, NULL is considered legitimate-by-design, not an anomaly
 
         for col in cols:
             cursor.execute(f"SELECT COUNT(*) FROM \"{table_name}\" WHERE \"{col}\" IS NULL OR CAST(\"{col}\" AS TEXT) = '' OR CAST(\"{col}\" AS TEXT) = 'NULL';")
@@ -99,7 +99,7 @@ def profile_table_anomalies(db_path: Path | str, table_name: str) -> Dict[str, A
                 else:
                     summary["null_anomalies"].append(entry)
 
-        # 2. Проверка числовых аномалий (Отрицательные значения и Невалидный возраст)
+        # 2. Checking for numerical anomalies (Negative values ​​and invalid age)
         for col in cols:
             if any(k in col.lower() for k in COORDINATE_KEYWORDS):
                 pass
@@ -132,8 +132,8 @@ def profile_table_anomalies(db_path: Path | str, table_name: str) -> Dict[str, A
                 except Exception as e:
                     logger.warning(f"Anomaly check failed on column '{col}': {e}")
 
-        # 3. Проверка инверсии дат — только между явными парами start/end,
-        # не между любыми двумя date-like колонками (см. START_KEYWORDS/END_KEYWORDS выше)
+        # 3. Check for date inversion — only between explicit start/end pairs,
+        # not between any two date-like columns (see START_KEYWORDS/END_KEYWORDS above)
         date_cols = [c for c in cols if _is_date_like_column(c)]
         start_cols = [c for c in date_cols if _get_date_role(c) == "start"]
         end_cols = [c for c in date_cols if _get_date_role(c) == "end"]

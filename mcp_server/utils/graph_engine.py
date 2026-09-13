@@ -3,8 +3,8 @@ from typing import Dict, List, Tuple
 
 def build_and_analyze_graph(nodes: List[str], edges: List[Tuple[str, str]]) -> Dict[str, float]:
     """
-    Строит глобальный направленный граф lineage-связей 
-    и вычисляет Betweenness Centrality для каждого узла.
+    Constructs a global directed graph of lineage connections 
+    and calculates the betweenness centrality for each node.
     """
     G = nx.DiGraph()
     

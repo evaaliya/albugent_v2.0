@@ -15,20 +15,20 @@ from mcp_server.utils.db_utils import get_table_fields, get_last_modified_timest
 from mcp_server.utils.remediation_generator import generate_remediation_sql
 
 
-# Настройка логирования по Production стандартам
+# Configuring logging to production standards
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger("Albugent-MCP")
 
-# Инициализация MCP сервера
+# Initializing the MCP server
 mcp = FastMCP("Albugent-DataHub-MCP")
 
 
 def get_data_root() -> Path:
-    """Универсальное определение каталога с данными."""
-    # 1. Проверяем явную переменную окружения
+    """A universal definition of the data directory."""
+    # 1. Check for an explicit environment variable.
     if "PROJECT_ROOT" in os.environ:
         root = Path(os.environ["PROJECT_ROOT"]).resolve()
         if (root / "data").exists():
@@ -36,21 +36,21 @@ def get_data_root() -> Path:
         if any((root / d).exists() for d in ["healthcare", "fiction-retail", "nyc-taxi"]):
             return root
 
-    # 2. Проверяем текущий рабочий каталог
+    # 2. Checking the current working directory
     cwd = Path.cwd().resolve()
     if (cwd / "data").exists():
         return cwd / "data"
     if any((cwd / d).exists() for d in ["healthcare", "fiction-retail", "nyc-taxi"]):
         return cwd
 
-    # 3. Резервный поиск от файла mcp_server.py
+    # 3. Fallback search from the mcp_server.py file
     file_dir = Path(__file__).resolve().parent
     if (file_dir.parent / "data").exists():
         return file_dir.parent / "data"
     if any((file_dir.parent / d).exists() for d in ["healthcare", "fiction-retail", "nyc-taxi"]):
         return file_dir.parent
 
-    # По умолчанию возвращаем /app/data или /app
+    # By default, return /app/data or /app
     fallback = Path("/app/data") if Path("/app/data").exists() else Path("/app")
     return fallback
 
@@ -59,7 +59,7 @@ BASE_DIR = get_data_root()
 
 
 def scan_enterprise_datasets() -> Dict[str, Dict[str, Any]]:
-    """Динамически сканирует директории данных и создает реестр URN без хардкода."""
+    """Dynamically scans data directories and creates a URN registry without hardcoding."""
     registry = {}
     target_domains = ["healthcare", "fiction-retail", "nyc-taxi"]
 
@@ -72,7 +72,7 @@ def scan_enterprise_datasets() -> Dict[str, Dict[str, Any]]:
             continue
 
         recipe_path = domain_path / "ingest.yaml"
-        # Ищем все базы SQLite (*.db) внутри папки домена
+        # Search for all SQLite databases (*.db) inside the domain folder
         db_files = list(domain_path.glob("*.db"))
 
         if not db_files:
@@ -183,7 +183,7 @@ def inspect_dataset_schema(dataset_urn: str) -> Dict[str, Any]:
     }
 
 
-# 2. MCP-инструмент для полной оценки риска (PII + Freshness + Centrality)
+# 2. MCP tool for comprehensive risk assessment (PII + Freshness + Centrality)
 @mcp.tool()
 def calculate_pipeline_centrality() -> Dict[str, float]:
     """Calculates Betweenness Centrality metrics for all datasets in the lineage graph."""
@@ -203,7 +203,7 @@ def score_dataset_risk(dataset_urn: str) -> Dict[str, Any]:
     table_name = meta.get("table", "")
     last_updated_ts = get_last_modified_timestamp(Path(db_path), table_name)#
 
-    # Чистые вызовы из сфокусированных модулей в utils/
+    # Clean calls from focused modules in utils/
     fields = get_table_fields(db_path, table_name)
     centrality_map = calculate_pipeline_centrality()
     centrality = centrality_map.get(dataset_urn, 0.0)
@@ -236,7 +236,7 @@ def score_all_datasets_risk() -> Dict[str, Any]:
         if not isinstance(score_data, dict) or "error" in score_data:
             continue
 
-        # Собираем явный список проблем со свежестью
+        # Compiling an explicit list of freshness issues
         if score_data.get("has_freshness_issue"):
             freshness_vulnerabilities.append({
                 "urn": urn,
@@ -262,7 +262,7 @@ def score_all_datasets_risk() -> Dict[str, Any]:
             "pii_vulnerabilities": pii_vulnerabilities
         }
     }
-#__---------fixed version---------------------------up
+
 @mcp.tool()
 def get_dataset_sample(dataset_urn: str, limit: int = 5) -> Dict[str, Any]:
     """Retrieves column names and a sample of rows from the dataset for data profiling."""
@@ -300,7 +300,7 @@ def execute_sql_query(dataset_urn: str, query: str) -> Dict[str, Any]:
     if not meta:
         return {"error": f"URN '{dataset_urn}' not found in registry."}
 
-    # Безопасность: только READ-ONLY запросы
+    # secure: only READ-ONLY requests
     clean_query = query.strip()
     if not clean_query.lower().startswith("select") and not clean_query.lower().startswith("pragma"):
         return {"error": "Only read-only SELECT or PRAGMA queries are allowed."}
@@ -326,12 +326,12 @@ def execute_sql_query(dataset_urn: str, query: str) -> Dict[str, Any]:
         logger.error(f"SQL execution error on {dataset_urn}: {e}")
         return {"error": str(e), "query": query}
     
-#new tool---------------------------------
+
 @mcp.tool()
 def auto_profile_dataset_anomalies(dataset_urn: str) -> Dict[str, Any]:
     """
-    Универсально профилирует данные датасета без привязки к конкретной предметной области.
-    Возвращает статистические аномалии (NULLs, отрицательные значения, сбои хронологии дат).
+    Performs universal dataset profiling, independent of any specific domain.
+    Identifies statistical anomalies (NULLs, negative values, chronological inconsistencies in dates).
     """
     meta = DATASET_REGISTRY.get(dataset_urn)
     if not meta:

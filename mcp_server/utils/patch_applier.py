@@ -12,25 +12,24 @@ ACTIVITY_LOG_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "ac
 
 
 def _append_activity_log(entry: Dict[str, Any]) -> None:
-    """Дописывает одну запись в лог. Не бросает исключение наружу —
-    сбой логирования не должен ронять сам apply."""
+    print(f"WRITING ACTIVITY LOG TO: {ACTIVITY_LOG_PATH}")
     try:
         log = []
         if ACTIVITY_LOG_PATH.exists():
             with open(ACTIVITY_LOG_PATH, "r", encoding="utf-8") as f:
                 log = json.load(f)
         log.append(entry)
-        log = log[-100:]  # держим последние 100 событий, не растим файл бесконечно
+        log = log[-100:]  # Keep the last 100 events; do not let the file grow indefinitely.
         with open(ACTIVITY_LOG_PATH, "w", encoding="utf-8") as f:
             json.dump(log, f, indent=2)
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"ACTIVITY LOG WRITE FAILED: {e}")
 
 
 def apply_patch(dataset_urn: str, patch_id: str, dataset_registry: Dict[str, Any]) -> Dict[str, Any]:
     """
-    НЕ MCP tool. Вызывается напрямую backend-эндпоинтом по клику "Применить" в UI.
-    LLM/агент не имеет доступа к этой функции ни при каких условиях.
+    Not an MCP tool. It is called directly by the backend endpoint when the "Apply" button is clicked in the UI.
+    The LLM/agent has no access to this function under any circumstances.
     """
     meta = dataset_registry.get(dataset_urn)
     if not meta:

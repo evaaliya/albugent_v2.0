@@ -1,0 +1,155 @@
+[
+  {
+    "timestamp": "2026-09-12T12:46:03.817245+00:00",
+    "action": "approve",
+    "patch_id": "staging_patients.billing_amount.negative_fix",
+    "dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,healthcare.staging_patients,PROD)",
+    "patch_type": "negative_fix",
+    "target_column": "billing_amount",
+    "rows_updated": 55500
+  },
+  {
+    "timestamp": "2026-09-12T12:46:04.929101+00:00",
+    "action": "approve",
+    "patch_id": "mart_billing.billing_amount.negative_fix",
+    "dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,healthcare.mart_billing,PROD)",
+    "patch_type": "negative_fix",
+    "target_column": "billing_amount",
+    "rows_updated": 55500
+  },
+  {
+    "timestamp": "2026-09-12T12:46:06.700781+00:00",
+    "action": "approve",
+    "patch_id": "staging_patients.date_of_admission_discharge_date.date_logic_fix",
+    "dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,healthcare.staging_patients,PROD)",
+    "patch_type": "date_logic_fix",
+    "target_column": "date_of_admission",
+    "rows_updated": 55500
+  },
+  {
+    "timestamp": "2026-09-12T12:46:07.955399+00:00",
+    "action": "approve",
+    "patch_id": "mart_billing.name.null_fill",
+    "dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,healthcare.mart_billing,PROD)",
+    "patch_type": "null_fill",
+    "target_column": "name",
+    "rows_updated": 55500
+  },
+  {
+    "timestamp": "2026-09-12T12:46:09.117089+00:00",
+    "action": "approve",
+    "patch_id": "mart_billing.length_of_stay_days.negative_fix",
+    "dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,healthcare.mart_billing,PROD)",
+    "patch_type": "negative_fix",
+    "target_column": "length_of_stay_days",
+    "rows_updated": 55500
+  },
+  {
+    "timestamp": "2026-09-12T12:46:10.339474+00:00",
+    "action": "approve",
+    "patch_id": "mart_demographics.age.invalid_age",
+    "dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,healthcare.mart_demographics,PROD)",
+    "patch_type": "invalid_age",
+    "target_column": "age",
+    "rows_updated": 55500
+  },
+  {
+    "timestamp": "2026-09-12T12:46:11.537689+00:00",
+    "action": "approve",
+    "patch_id": "mart_billing.date_of_admission_discharge_date.date_logic_fix",
+    "dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,healthcare.mart_billing,PROD)",
+    "patch_type": "date_logic_fix",
+    "target_column": "date_of_admission",
+    "rows_updated": 55500
+  },
+  {
+    "timestamp": "2026-09-12T12:48:25.219203+00:00",
+    "action": "approve",
+    "patch_id": "mart_demographics.name.null_fill",
+    "dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,healthcare.mart_demographics,PROD)",
+    "patch_type": "null_fill",
+    "target_column": "name",
+    "rows_updated": 55500
+  },
+  {
+    "timestamp": "2026-09-12T12:48:28.099192+00:00",
+    "action": "approve",
+    "patch_id": "shipments.delivered_date.null_fill",
+    "dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,fiction-retail.shipments,PROD)",
+    "patch_type": "null_fill",
+    "target_column": "delivered_date",
+    "rows_updated": 119936
+  },
+  {
+    "timestamp": "2026-09-12T12:48:28.747030+00:00",
+    "action": "approve",
+    "patch_id": "mart_demographics.age.null_fill",
+    "dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,healthcare.mart_demographics,PROD)",
+    "patch_type": "null_fill",
+    "target_column": "age",
+    "rows_updated": 55500
+  },
+  {
+    "timestamp": "2026-09-12T12:48:42.555756+00:00",
+    "action": "approve",
+    "patch_id": "raw_trips.fare_amount.negative_fix",
+    "dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,nyc-taxi.raw_trips,PROD)",
+    "patch_type": "negative_fix",
+    "target_column": "fare_amount",
+    "rows_updated": 250000
+  },
+  {
+    "timestamp": "2026-09-12T12:48:45.027741+00:00",
+    "action": "approve",
+    "patch_id": "raw_trips.mta_tax.negative_fix",
+    "dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,nyc-taxi.raw_trips,PROD)",
+    "patch_type": "negative_fix",
+    "target_column": "mta_tax",
+    "rows_updated": 250000
+  },
+  {
+    "timestamp": "2026-09-12T12:48:48.132285+00:00",
+    "action": "approve",
+    "patch_id": "raw_trips.extra.negative_fix",
+    "dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,nyc-taxi.raw_trips,PROD)",
+    "patch_type": "negative_fix",
+    "target_column": "extra",
+    "rows_updated": 250000
+  },
+  {
+    "timestamp": "2026-09-12T12:48:51.615668+00:00",
+    "action": "approve",
+    "patch_id": "staging_trips.trip_duration_min.negative_fix",
+    "dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,nyc-taxi.staging_trips,PROD)",
+    "patch_type": "negative_fix",
+    "target_column": "trip_duration_min",
+    "rows_updated": 208675
+  },
+  {
+    "timestamp": "2026-09-12T12:48:53.721397+00:00",
+    "action": "approve",
+    "patch_id": "raw_trips.improvement_surcharge.negative_fix",
+    "dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,nyc-taxi.raw_trips,PROD)",
+    "patch_type": "negative_fix",
+    "target_column": "improvement_surcharge",
+    "rows_updated": 250000
+  },
+  {
+    "timestamp": "2026-09-12T12:48:55.791652+00:00",
+    "action": "approve",
+    "patch_id": "raw_trips.tip_amount.negative_fix",
+    "dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,nyc-taxi.raw_trips,PROD)",
+    "patch_type": "negative_fix",
+    "target_column": "tip_amount",
+    "rows_updated": 250000
+  },
+  {
+    "timestamp": "2026-09-12T12:57:07.434324+00:00",
+    "action": "approve",
+    "patch_id": "raw_trips.total_amount.negative_fix",
+    "dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,nyc-taxi.raw_trips,PROD)",
+    "patch_type": "negative_fix",
+    "target_column": "total_amount",
+    "rows_updated": 250000
+  }
+]

@@ -89,7 +89,7 @@ const API_BASE = 'http://localhost:8000';
 const STAGE_ORDER: Record<string, number> = { raw: 0, staging: 1, mart: 2 };
 
 // ============================================================
-// SECTION: Lineage map — простая позиционная раскладка + SVG-линии
+// SECTION: Lineage map — simple positional layout + SVG-lines
 // ============================================================
 function LineageMap({ graph }: { graph: LineageGraph }) {
   const domains = useMemo(
@@ -352,7 +352,7 @@ export default function App() {
         fetch(`${API_BASE}/api/lineage-graph`),
         fetch(`${API_BASE}/api/activity-log`),
       ]);
-      if (!kpiRes.ok || !proposalsRes.ok || !piiRes.ok || !qualityRes.ok || !lineageRes.ok) {
+      if (!kpiRes.ok || !proposalsRes.ok || !piiRes.ok || !qualityRes.ok || !lineageRes.ok || !activityRes.ok) {
         throw new Error('Backend request failed');
       }
       const activityData = await activityRes.json();
@@ -361,6 +361,7 @@ export default function App() {
       setPiiDist(await piiRes.json());
       setQuality(await qualityRes.json());
       setLineage(await lineageRes.json());
+      setActivityLog(activityData.events);
     } catch (err: any) {
       setError(err.message || 'Failed to reach backend');
     } finally {
@@ -392,7 +393,7 @@ export default function App() {
           proposals: [...prev.proposals, { t, v: proposalsData.length }].slice(-30),
         }));
       } catch {
-        // тихо пропускаем один неудачный poll, не рвём весь график
+        
       }
     }, 5000);
 
@@ -566,7 +567,7 @@ export default function App() {
                   </div>
                 </div>
               </div>
-              {/* Live Metrics — все линии в одном графике */}
+              {/* Live Metrics */}
               <div className="rounded-lg p-4 shrink-0" style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-xs font-semibold tracking-wider uppercase" style={{ color: 'var(--color-text-secondary)' }}>Live Metrics</h3>

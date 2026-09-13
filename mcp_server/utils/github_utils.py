@@ -17,11 +17,11 @@ def create_remediation_pr(
     g = Github(token)
     repo = g.get_repo(repo_name)
 
-    # Проверяем, нет ли уже открытого Draft PR от Albugent
+    # Check if there is already an open Draft PR from Albugent
     existing_prs = repo.get_pulls(state="open", base=base_branch)
     for pr in existing_prs:
         if pr.head.ref.startswith("albugent/remediation-") and pr.draft:
-            # Обновляем существующий PR вместо создания нового
+            # Updating an existing PR instead of creating a new one
             branch_name = pr.head.ref
             try:
                 contents = repo.get_contents(remediation_file_path, ref=branch_name)
@@ -42,7 +42,7 @@ def create_remediation_pr(
             pr.edit(body=pr_body_markdown)
             return pr.html_url
 
-    # Если открытого PR нет — создаём новый, как раньше
+    # If there is no open PR, create a new one, as before.
     branch_name = f"albugent/remediation-{secrets.token_hex(3)}"
     main_ref = repo.get_git_ref(f"heads/{base_branch}")
     repo.create_git_ref(ref=f"refs/heads/{branch_name}", sha=main_ref.object.sha)

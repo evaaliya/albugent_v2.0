@@ -5,7 +5,7 @@ from typing import List, Dict, Any
 from datetime import datetime
 
 def get_table_fields(db_path: Path | str, table_name: str) -> List[str]:
-    """Возвращает список названий колонок для указанной таблицы SQLite."""
+    """Returns a list of column names for the specified SQLite table."""
     path = Path(db_path)
     if not path.exists() or not table_name:
         return []
@@ -41,15 +41,15 @@ def get_last_modified_timestamp(db_path: Path | str, table_name: str = "") -> fl
                 
                 if row and row[0]:
                     val = row[0]
-                    # Если числовой timestamp
+                    # if numeric timestamp
                     if isinstance(val, (int, float)):
                         return float(val if val > 1e11 else val * 1000)
-                    # Если дата записана строкой ISO (например '2026-08-15 10:00:00')
+                    # If the date is recorded as an ISO string (e.g., '2026-08-15 10:00:00')
                     if isinstance(val, str):
                         dt = datetime.fromisoformat(val.replace("Z", "+00:00"))
                         return dt.timestamp() * 1000.0
         except Exception:
             pass
 
-    # Fallback к изменению файла
+    # Fallback to file change
     return path.stat().st_mtime * 1000.0

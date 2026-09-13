@@ -1,13 +1,13 @@
 from typing import Dict, Any, List, Tuple
 from mcp_server.utils.db_utils import get_table_fields
-HALT_THRESHOLD_ROWS = 100  # порог "значимой" аномалии — настраиваемо
+HALT_THRESHOLD_ROWS = 100  # threshold for a "significant" anomaly — configurable
 
 def compute_circuit_breaker_status(
     dataset_registry: Dict[str, Any],
     profiles: Dict[str, Dict[str, Any]],
     edges: List[Tuple[str, str]],
 ) -> Dict[str, str]:
-    directly_halted: Dict[str, set] = {}  # urn -> set затронутых колонок
+    directly_halted: Dict[str, set] = {}  # urn -> set of affected columns
     has_any_finding = set()
 
     for urn, profile in profiles.items():
@@ -47,7 +47,7 @@ def compute_circuit_breaker_status(
         for dst in downstream_map.get(urn, []):
             dst_cols = get_columns(dst)
             overlap = affected_cols & dst_cols
-            if overlap:  # только если проблемная колонка реально есть в downstream-таблице
+            if overlap:  # only if the problematic column actually exists in the downstream table
                 propagate(dst, overlap, visited)
 
     for urn, cols in directly_halted.items():

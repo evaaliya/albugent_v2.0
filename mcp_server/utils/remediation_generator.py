@@ -5,14 +5,14 @@ from dataclasses import dataclass, field
 @dataclass
 class RemediationPatch:
     """Один атомарный, применимый по отдельности артефакт-фикс для UI."""
-    patch_id: str                  # напр. "mart_billing.billing_amount.negative_fix"
+    patch_id: str                  # exmp. "mart_billing.billing_amount.negative_fix"
     dataset_urn: str
     table_name: str
     target_column: str
     patch_type: str                # "negative_fix" | "invalid_age" | "null_fill" | "date_logic_fix" | "pii_flag"
-    column_expr: str               # SQL-выражение для SELECT (напр. "CASE WHEN ... END")
+    column_expr: str               # SQL expression for SELECT (e.g., "CASE WHEN ... END")
     description: str
-    affected_columns: List[str] = field(default_factory=list)  # для date-фиксов их две
+    affected_columns: List[str] = field(default_factory=list)  #for date fixes, there are two of them
 
 
 def generate_remediation_patches(
@@ -22,14 +22,14 @@ def generate_remediation_patches(
     pii_columns: List[str] = None,
 ) -> List[RemediationPatch]:
     """
-    Единственное место, где строится маппинг колонка -> SQL-выражение.
-    Возвращает список независимых патчей — по одному на аномалию/колонку.
-    generate_remediation_sql() ниже просто собирает их в один SELECT.
+    This is the only place where the column-to-SQL-expression mapping is constructed.
+    It returns a list of independent patches—one per anomaly/column.
+    The `generate_remediation_sql()` function below simply aggregates them into a single SELECT statement.
 
-    Колонки, помеченные профилировщиком как high_null_rate_columns (>20% NULL,
-    "likely nullable by design" — напр. delivered_date для заказов в пути),
-    НЕ получают null_fill патч. Высокий NULL rate там — легитимное бизнес-состояние,
-    не аномалия.
+    Columns flagged by the profiler as `high_null_rate_columns` (>20% NULL,
+    "likely nullable by design"—e.g., `delivered_date` for in-transit orders)
+    do NOT receive a `null_fill` patch. A high NULL rate in these cases represents a legitimate business state,
+    not an anomaly.
     """
     pii_columns = pii_columns or []
     null_anomalies = profile_data.get("null_anomalies", [])
@@ -40,7 +40,7 @@ def generate_remediation_patches(
     patches: List[RemediationPatch] = []
     handled_cols: set = set()
 
-    # 1. Числовые аномалии — группируем по колонке
+    # 1. Numerical anomalies — grouping by column
     numeric_by_col: Dict[str, List[dict]] = {}
     for anomaly in numeric_issues:
         numeric_by_col.setdefault(anomaly["column"], []).append(anomaly)
@@ -74,14 +74,14 @@ def generate_remediation_patches(
         ))
         handled_cols.add(col)
 
-    # 2. NULL-значения — пропускаем колонки, уже покрытые числовыми фиксами
-    # И пропускаем колонки, легитимно nullable by design (high_null_rate_columns)
+    # 2. NULL values ​​— skip columns already covered by numeric fixes
+    # And skip columns that are legitimately nullable by design (high_null_rate_columns)
     for item in null_anomalies:
         col = item["column"]
         if col in handled_cols:
             continue
         if col in high_null_rate_cols:
-            continue  # напр. delivered_date — NULL значит "в пути", не аномалия
+            continue  # e.g., delivered_date — NULL means "in transit," not an anomaly
 
         if "name" in col.lower() or "title" in col.lower():
             expr = f"COALESCE({col}, 'UNKNOWN')"
@@ -102,7 +102,7 @@ def generate_remediation_patches(
         ))
         handled_cols.add(col)
 
-    # 3. Инверсия дат — только для пар (ровно 2 связанные колонки)
+    # 3. Date inversion — for pairs only (exactly 2 linked columns)
     date_conditions: Dict[str, List[str]] = {}
     for date_anomaly in date_issues:
         c1, c2 = date_anomaly["col_1"], date_anomaly["col_2"]
@@ -137,14 +137,14 @@ def generate_remediation_patches(
 
 def generate_remediation_sql(table_name: str, profile_data: Dict[str, Any], pii_columns: List[str] = None) -> str:
     """
-    Сохраняет прежнюю сигнатуру и поведение для agent.py / build_sql_remediation_artifact.
-    Внутри теперь просто собирает единый SELECT из generate_remediation_patches().
+    Preserves the existing signature and behavior for agent.py / build_sql_remediation_artifact.
+Internally, it now simply assembles a single SELECT statement from generate_remediation_patches().
     """
     pii_columns = pii_columns or []
     all_columns = profile_data.get("all_columns", [])
 
     patches = generate_remediation_patches(
-        dataset_urn="",  # не нужен для сборки цельного SQL, только для UI-патчей
+        dataset_urn="",  # not needed for assembling the complete SQL, only for UI patches
         table_name=table_name,
         profile_data=profile_data,
         pii_columns=pii_columns,

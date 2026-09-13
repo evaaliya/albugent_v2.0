@@ -1,10 +1,10 @@
-# Переменные окружения и секреты (КРИТИЧНО)
+# Environment variables and secrets (CRITICAL)
 .env
 *.env
 .env.*
 !.env.example
 
-# Кеш Python и артефакты
+# Python cache and artifacts
 __pycache__/
 *.pyc
 .venv/
@@ -30,16 +30,16 @@ wheels/
 .installed.cfg
 *.egg
 
-# Настройки VS Code / IDE
+# settings VS Code / IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# MacOS системные файлы
+# MacOS system files
 .DS_Store
 
-# Кеш Docker / тестирования
+# cash Docker / tests
 .pytest_cache/
 .coverage
 htmlcov/

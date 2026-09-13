@@ -15,7 +15,7 @@ from mcp_server.mcp_server import (
 
 app = FastAPI(title="Albugent Web API")
 
-# На деве разрешаем фронт с любого порта; сузьте origin на проде
+# On Dev, allow the front from any port; narrow the origin on Prod.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -26,8 +26,7 @@ app.add_middleware(
 
 @app.get("/api/kpi-summary")
 def kpi_summary() -> Dict[str, Any]:
-    """Питает верхний KPI-баннер. PII считается напрямую через inspect_dataset_schema,
-    не завязано на risk-scoring цепочку."""
+    """It feeds the top KPI banner. PII is calculated directly via `inspect_dataset_schema` and is not tied to the risk-scoring chain."""
     risk_data = score_all_datasets_risk()
 
     total_pii_columns = 0
@@ -99,7 +98,7 @@ def quality_insights() -> Dict[str, Any]:
 
     insights.sort(key=lambda x: x["percentage"], reverse=True)
 
-    # Эвристика, не точная научная метрика: штраф пропорционален среднему % аномалий.
+    # A heuristic, not a precise scientific metric: the penalty is proportional to the average percentage of anomalies.
     avg_pct = sum(i["percentage"] for i in insights) / len(insights) if insights else 0
     overall_score = round(max(0, 100 - avg_pct * 2))
 
@@ -111,7 +110,7 @@ def quality_insights() -> Dict[str, Any]:
 
 @app.get("/api/proposals")
 def pending_proposals() -> List[Dict[str, Any]]:
-    """Питает панель Pending Proposals — по одному патчу на карточку."""
+    """It populates the Pending Proposals panel—one patch per card."""
     all_proposals = []
     for urn in DATASET_REGISTRY.keys():
         result = get_remediation_patches(urn)
@@ -130,14 +129,14 @@ def pending_proposals() -> List[Dict[str, Any]]:
 
 @app.post("/api/proposals/{patch_id}/approve")
 def approve_proposal(patch_id: str, dataset_urn: str) -> Dict[str, Any]:
-    """Approve = реальное применение патча. Вызывает write-функцию НАПРЯМУЮ, не через MCP tool."""
+    """Approve = actual application of the patch. It calls the write function DIRECTLY, bypassing the MCP tool."""
     from mcp_server.utils.patch_applier import apply_patch
     return apply_patch(dataset_urn, patch_id, DATASET_REGISTRY)
 
 
 @app.post("/api/proposals/{patch_id}/reject")
 def reject_proposal(patch_id: str) -> Dict[str, Any]:
-    """Reject ничего не пишет в БД — просто подтверждение для UI, что карточка убрана из очереди."""
+    """"Reject" doesn't write anything to the database—it simply serves as a confirmation for the UI that the card has been removed from the queue."""
     from mcp_server.utils.patch_applier import _append_activity_log
     from datetime import datetime, timezone
 
@@ -161,8 +160,8 @@ def generate_pr() -> Dict[str, Any]:
 
 @app.get("/api/lineage-graph")
 def lineage_graph() -> Dict[str, Any]:
-    """Узлы = датасеты, рёбра = lineage-связи из discover_lineage_edges.
-    Стадия (raw/staging/mart) определяется по имени таблицы для раскладки на фронте."""
+    """Nodes = datasets; edges = lineage connections from `discover_lineage_edges`.
+The stage (raw/staging/mart) is determined by the table name for frontend layout purposes."""
     edges = discover_lineage_edges(DATASET_REGISTRY)
 
     def stage_of(table_name: str) -> str:
@@ -201,4 +200,4 @@ def activity_log() -> Dict[str, Any]:
     with open(log_path, "r", encoding="utf-8") as f:
         events = json.load(f)
 
-    return {"events": list(reversed(events))}  # самые свежие сверху
+    return {"events": list(reversed(events))}  

@@ -13,10 +13,10 @@ def evaluate_dataset_risk(
     **kwargs,
 ) -> Dict[str, Any]:
     """
-    Вычисляет интегральный скор риска датасета.
-    Сигнатура соответствует фактическому вызову в mcp_server.py:score_dataset_risk.
-    PII определяется здесь, из fields, а не ожидается предвычисленным снаружи —
-    это единственный источник PII-детекции, тот же detect_pii_columns, что и везде.
+    Calculates the aggregate risk score for a dataset.
+    The signature matches the actual call in `mcp_server.py:score_dataset_risk`.
+    PII is determined here based on the fields rather than being expected as pre-computed externally—
+    this is the sole source of PII detection, utilizing the same `detect_pii_columns` logic used elsewhere.
     """
     fields = fields or []
     pii_found = detect_pii_columns(fields)
@@ -36,7 +36,7 @@ def evaluate_dataset_risk(
         "risk_score": total_risk,
         "has_pii": len(pii_found) > 0,
         "pii_columns": pii_found,
-        "pii_fields": pii_found,  # алиас: score_all_datasets_risk в mcp_server.py читает именно этот ключ
+        "pii_fields": pii_found,  # alias: score_all_datasets_risk in mcp_server.py reads precisely this key
         "stale_hours": round(stale_hours, 2),
         "has_freshness_issue": stale_hours > 24,
         "is_orphan": is_orphan,
