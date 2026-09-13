@@ -26,20 +26,24 @@ app.add_middleware(
 
 @app.get("/api/kpi-summary")
 def kpi_summary() -> Dict[str, Any]:
-    """It feeds the top KPI banner. PII is calculated directly via `inspect_dataset_schema` and is not tied to the risk-scoring chain."""
-    risk_data = score_all_datasets_risk()
-
     total_pii_columns = 0
     for urn in DATASET_REGISTRY.keys():
         schema = inspect_dataset_schema(urn)
         total_pii_columns += len(schema.get("detected_pii_fields", []))
 
+    total_violations = 0
+    for urn in DATASET_REGISTRY.keys():
+        result = get_remediation_patches(urn)
+        if "error" not in result:
+            total_violations += len(result["patches"])
+
     return {
         "data_assets": len(DATASET_REGISTRY),
         "tables_scanned": len(DATASET_REGISTRY),
         "pii_columns": total_pii_columns,
-        "policy_violations": risk_data["summary"]["high_risk_count"],
+        "policy_violations": total_violations,
     }
+    
 
 @app.get("/api/pii-distribution")
 def pii_distribution() -> Dict[str, Any]:
