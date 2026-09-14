@@ -4,6 +4,11 @@ Albugent is an autonomous AI agent that audits SQLite datasets for data quality 
 
 Built with the [Strands Agents SDK](https://strandsagents.com) on AWS Bedrock.
 
+## 🎥 Demo Video
+
+[![Watch the demo](https://img.youtube.com/vi/bugIL_5iie8/maxresdefault.jpg)](https://youtu.be/bugIL_5iie8)
+
+▶️ [Watch on YouTube](https://youtu.be/bugIL_5iie8)
 ---
 
 ## The Problem
